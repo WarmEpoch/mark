@@ -6,6 +6,7 @@ import { Swiper, SwiperSlide } from 'swiper/vue'
 import exifr from 'exifr'
 import heic2any from 'heic2any'
 import domtoimage from 'dom-to-image'
+import axios from 'axios'
 
 
 import 'swiper/css'
@@ -126,7 +127,8 @@ const ImgChange = async (uploadFileRaw) => {
 
   const heic = await heic2any({
     blob: uploadFileRaw,
-    toType: "image/png",
+    toType: "image/jpeg",
+    quality: 1,
   })
   .then(function (resultBlob) {
     return URL.createObjectURL(resultBlob)
@@ -181,13 +183,41 @@ const format = (Date) => {
   return Y + '.' + M + '.' + D + ' ' + H + ':' + Mi + ':' + S;
 }
 
-const Create = () =>{
+const Create = async () =>{
   let load = ElLoading.service({
     lock: true,
     text: '图片生成中',
   })
+  if(!localStorage.getItem('ONLY')){
+    
+    await ElMessageBox.prompt('请联系我们获得身份码，价格协商再定。', '身份码', {
+      confirmButtonText: '确定',
+      cancelButtonText: '联系',
+      inputPattern: /[0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z]/,
+      inputErrorMessage: '请输入六位身份码',
+    }).then(({ value }) => {
+      localStorage.setItem('ONLY',value)
+    }).catch(() => {
+      window.open('//www.immers.icu/#call','_blank')
+    })
+
+  }
+  const time = await axios({
+    method: 'get',
+    url: `https://api.immers.icu/api/Mark/time?only=${localStorage.getItem('ONLY')}`,
+  }).then(res => res.data)
+
+  if(time < imgs.value.length){
+    ElMessage({
+        type: 'info',
+        message: '次数不足',
+    })
+    load.close()
+    return false
+  }
+
+
   document.querySelectorAll('.swiper-slide').forEach(async (el,index) => {
-    console.log(imgs.value[index])
     let div = el.querySelector('.mark').cloneNode(true)
     div.style.zoom = 'unset'
     toImg.value.append(div)
@@ -200,15 +230,25 @@ const Create = () =>{
     img.src = imgs.value[index].src
     img.onload =  () => {
       cancon.drawImage(img,0,0)
+      console.log(canvas.toDataURL("image/jpeg", 0.1))
+      axios({
+        method: 'post',
+        url: 'https://api.immers.icu/api/Mark/creates',
+        data: {
+          only: localStorage.getItem('ONLY'),
+          base: canvas.toDataURL("image/jpeg", 0.1)
+        }
+      })
+      
     }
     
-    await domtoimage.toBlob(div).then(blob => {
+    await domtoimage.toJpeg(div,{quality: 1}).then(dataUrl => {
         div.remove()
         let mark = new Image()
-        mark.src = URL.createObjectURL(blob)
+        mark.src = dataUrl
         mark.onload = () => {
           cancon.drawImage(mark,0,imgs.value[index].height)
-          creates.value.unshift(canvas.toDataURL("image/png"))
+          creates.value.unshift(canvas.toDataURL("image/jpeg", 1))
           canvas.remove()
         }
     })
@@ -289,7 +329,7 @@ const IconChange = (uploadFileRaw) => {
         </el-select>
         <el-upload :before-upload="IconChange" :show-file-list="false">
           <template #trigger>
-            <el-button type="primary" size="large" style="margin-left: 1rem;">选择</el-button>
+            <el-button type="primary" size="large" style="margin-left: 1rem;">上传</el-button>
           </template>
         </el-upload>
       </el-form-item>
@@ -382,4 +422,10 @@ a{
 }
 
 
+</style>
+
+<style>
+  .el-message-box{
+    --el-messagebox-width: 90%;
+  }
 </style>
