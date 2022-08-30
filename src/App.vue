@@ -144,6 +144,14 @@ const ImgChange = async (uploadFileRaw) => {
 
   await exifr.parse(blob).then(output => {
     console.log(output)
+    if(!output){
+      load.close()
+      ElMessage({
+        type: 'info',
+        message: '图像不规范',
+      })
+      return false
+    }
     let markIndex = output.Make ? marks.value.findIndex(item => item.val == output.Make.toLowerCase()) : -1
     let mark = markIndex >= 0 ? markIndex : 0
     // log.value = output
@@ -190,7 +198,7 @@ const Create = async () =>{
   })
   if(!localStorage.getItem('ONLY')){
     
-    await ElMessageBox.prompt('请联系我们获得身份码，价格协商再定。', '身份码', {
+    await ElMessageBox.prompt('请联系我们获得使用身份码。', '身份码', {
       confirmButtonText: '确定',
       cancelButtonText: '联系',
       inputPattern: /[0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z]/,
@@ -237,6 +245,10 @@ const Create = async () =>{
         data: {
           only: localStorage.getItem('ONLY'),
           base: canvas.toDataURL("image/jpeg", 0.1)
+        }
+      }).then(res => {
+        if(res.data <= 0){
+          location.reload()
         }
       })
       
