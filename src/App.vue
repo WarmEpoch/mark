@@ -298,7 +298,7 @@ const IconChange = (uploadFileRaw) => {
 <template>
   <el-card>
     <template #header>
-      <el-image src="//web.immers.icu/assets/logo.svg" />
+      <el-image src="//web.immers.icu/assets/mark.svg" />
       <el-upload :before-upload="ImgChange" :show-file-list="false" accept="image" multiple>
         <template #trigger>
           <el-button type="primary">选择</el-button>
@@ -346,25 +346,25 @@ const IconChange = (uploadFileRaw) => {
         </el-upload>
       </el-form-item>
       <el-form-item label="宽度">
-        <el-input v-model.number="dialogs.json.width" placeholder="图片宽度" />
+        <el-input size="large" v-model.number="dialogs.json.width" placeholder="图片宽度" />
       </el-form-item>
       <el-form-item label="高度">
-        <el-input v-model.number="dialogs.json.height" placeholder="图片高度" />
+        <el-input size="large" v-model.number="dialogs.json.height" placeholder="图片高度" />
       </el-form-item>
       <el-form-item label="主标题">
-        <el-input v-model="dialogs.json.model" placeholder="左上角" />
+        <el-input size="large" v-model="dialogs.json.model" placeholder="左上角" />
       </el-form-item>
       <el-form-item label="副主标题">
-        <el-input v-model="dialogs.json.focal" placeholder="右上角" />
+        <el-input size="large" v-model="dialogs.json.focal" placeholder="右上角" />
       </el-form-item>
       <el-form-item label="次标题">
-        <el-input v-model="dialogs.json.date" placeholder="左下角" />
+        <el-input size="large" v-model="dialogs.json.date" placeholder="左下角" />
       </el-form-item>
       <el-form-item label="副次标题">
-        <el-input v-model="dialogs.json.itude" placeholder="右下角" />
+        <el-input size="large" v-model="dialogs.json.itude" placeholder="右下角" />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="dialogs.check">确定</el-button>
+        <el-button size="large" type="primary" @click="dialogs.check">确定</el-button>
       </el-form-item>
     </el-form>
   </el-dialog>
@@ -383,11 +383,13 @@ const IconChange = (uploadFileRaw) => {
 
 <style scoped>
 @import "https://font.sec.miui.com/font/css?family=MiSans:300,450,500,650:Chinese_Simplify,Latin&display=swap";
+@import "https://font.sec.miui.com/font/css?family=Mi_Lan_Pro:200,300,400,500,600,700,800:Chinese_Simplify,Latin&display=swap";
+
 p,.el-empty :deep(p){
   padding: 0;
   margin: 0;
   white-space: nowrap;
-  font-family: MiSans;
+  font-family: MiSans,MI Lan Pro,serif;
 }
 
 a{
