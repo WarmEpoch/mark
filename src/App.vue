@@ -27,10 +27,43 @@ const dialogs = ref({
     console.log(imgs.value[dialogs.value.index])
     dialogs.value.dialog = false
   },
-  show: (json,index) => {
+  show: async (json,index) => {
     dialogs.value.json = JSON.parse(JSON.stringify(json))
-    console.log(dialogs.value.json)
+    dialogs.value.outputs = json.output.LensModel
     dialogs.value.index = index
+    if(!localStorage.getItem('ONLY')){
+      
+      await ElMessageBox.prompt('请联系我们获得使用身份码。', '身份码', {
+        confirmButtonText: '确定',
+        cancelButtonText: '联系',
+        inputPattern: /[0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z]/,
+        inputErrorMessage: '请输入六位身份码',
+      }).then(({ value }) => {
+        console.log(value)
+        localStorage.setItem('ONLY',value)
+      }).catch(() => {
+        window.open('//www.immers.icu/#call','_blank')
+      })
+
+    }
+
+    if(!localStorage.getItem('ONLY')) return false
+
+    const time = await axios({
+      method: 'get',
+      url: `https://api.immers.icu/api/Mark/time?only=${localStorage.getItem('ONLY')}`,
+    }).then(res => res.data)
+
+    if(time < Date.parse(new Date()) / 1000){
+      ElMessage({
+          type: 'info',
+          message: 'DIY已到期',
+      })
+      setTimeout(() => {
+        window.open('//www.immers.icu/#call','_blank')
+      },2000)
+      return false
+    }
     dialogs.value.dialog = true
   },
   delete: (index) => {
@@ -122,8 +155,19 @@ const ImgChange = async (uploadFileRaw) => {
     lock: true,
     text: '图片加载中',
   })
+  console.log(uploadFileRaw)
+
+  if(uploadFileRaw.type !== 'image/png' && uploadFileRaw.type !== 'image/jpeg' && !uploadFileRaw.name.includes('.HEIC')){
+    load.close()
+    ElMessage({
+      type: 'info',
+      message: '图像格式不支持',
+    })
+    return false
+  }
   
   let blob = URL.createObjectURL(uploadFileRaw)
+
 
   const heic = await heic2any({
     blob: uploadFileRaw,
@@ -155,18 +199,20 @@ const ImgChange = async (uploadFileRaw) => {
     let markIndex = output.Make ? marks.value.findIndex(item => item.val == output.Make.toLowerCase()) : -1
     let mark = markIndex >= 0 ? markIndex : 0
     // log.value = output
-    imgs.value.unshift({
-      name: uploadFileRaw.name.split('.')[0],
-      src: heic || blob,
-      mark,
-      height: createHW.height,
-      width: createHW.width,
-      model: output.Model || 'Immers',
-      date: output.GPSLatitudeRef && output.CreateDate ? format(output.CreateDate) : '',
-      focal: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${output?.FocalLengthIn35mmFormat || output?.FocalLength || false}mm f/${ output?.FNumber || false } ${output.ExposureTime ? output.ExposureTime >= 1 ? output.ExposureTime : `1/${1 / output.ExposureTime}` : false} ISO${ output?.ISO || false }` : 'ImmersMark',
-      itude: output.GPSLatitudeRef && output.GPSLatitudeRef ? `${output.GPSLatitude[0]}° ${output.GPSLatitude[1]}' ${Math.round(output.GPSLatitude[2])}"${output.GPSLatitudeRef} ${output.GPSLongitude[0]}° ${output.GPSLongitude[1]}' ${Math.round(output.GPSLongitude[2])}"${output.GPSLongitudeRef}` : output.CreateDate ?  format(output.CreateDate) : format(new Date()),
-    })
-    console.log(imgs.value[0])
+    createHW.onload = () => {
+      imgs.value.unshift({
+        name: uploadFileRaw.name.split('.')[0],
+        src: heic || blob,
+        mark,
+        height: createHW.height,
+        width: createHW.width,
+        model: output.Model || 'Immers',
+        date: output.GPSLatitudeRef && output.CreateDate ? format(output.CreateDate) : '',
+        focal: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${output?.FocalLengthIn35mmFormat || output?.FocalLength || false}mm f/${ output?.FNumber || false } ${output.ExposureTime ? output.ExposureTime >= 1 ? output.ExposureTime : `1/${1 / output.ExposureTime}` : false} ISO${ output?.ISO || false }` : 'ImmersMark',
+        itude: output.GPSLatitudeRef && output.GPSLatitudeRef ? `${output.GPSLatitude[0]}° ${output.GPSLatitude[1]}' ${Math.round(output.GPSLatitude[2])}"${output.GPSLatitudeRef} ${output.GPSLongitude[0]}° ${output.GPSLongitude[1]}' ${Math.round(output.GPSLongitude[2])}"${output.GPSLongitudeRef}` : output.CreateDate ?  format(output.CreateDate) : format(new Date()),
+        output
+      })
+    }
   })
 
 
@@ -196,39 +242,13 @@ const Create = async () =>{
     lock: true,
     text: '图片生成中',
   })
-  if(!localStorage.getItem('ONLY')){
-    
-    await ElMessageBox.prompt('请联系我们获得使用身份码。', '身份码', {
-      confirmButtonText: '确定',
-      cancelButtonText: '联系',
-      inputPattern: /[0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z]/,
-      inputErrorMessage: '请输入六位身份码',
-    }).then(({ value }) => {
-      localStorage.setItem('ONLY',value)
-    }).catch(() => {
-      window.open('//www.immers.icu/#call','_blank')
-    })
-
-  }
-  const time = await axios({
-    method: 'get',
-    url: `https://api.immers.icu/api/Mark/time?only=${localStorage.getItem('ONLY')}`,
-  }).then(res => res.data)
-
-  if(time < imgs.value.length){
-    ElMessage({
-        type: 'info',
-        message: '次数不足',
-    })
-    load.close()
-    return false
-  }
 
 
   document.querySelectorAll('.swiper-slide').forEach(async (el,index) => {
     let div = el.querySelector('.mark').cloneNode(true)
     div.style.zoom = 'unset'
     toImg.value.append(div)
+
     let canvas = document.createElement('canvas')
     canvas.width = imgs.value[index].width
     canvas.height = imgs.value[index].height + div.clientHeight
@@ -238,7 +258,6 @@ const Create = async () =>{
     img.src = imgs.value[index].src
     img.onload =  () => {
       cancon.drawImage(img,0,0)
-      console.log(canvas.toDataURL("image/jpeg", 0.1))
       axios({
         method: 'post',
         url: 'https://api.immers.icu/api/Mark/creates',
@@ -246,16 +265,13 @@ const Create = async () =>{
           only: localStorage.getItem('ONLY'),
           base: canvas.toDataURL("image/jpeg", 0.1)
         }
-      }).then(res => {
-        if(res.data <= 0){
-          location.reload()
-        }
       })
       
     }
     
     await domtoimage.toJpeg(div,{quality: 1}).then(dataUrl => {
-        div.remove()
+        // div.remove()
+        console.log(dataUrl)
         let mark = new Image()
         mark.src = dataUrl
         mark.onload = () => {
@@ -345,12 +361,6 @@ const IconChange = (uploadFileRaw) => {
           </template>
         </el-upload>
       </el-form-item>
-      <el-form-item label="宽度">
-        <el-input size="large" v-model.number="dialogs.json.width" placeholder="图片宽度" />
-      </el-form-item>
-      <el-form-item label="高度">
-        <el-input size="large" v-model.number="dialogs.json.height" placeholder="图片高度" />
-      </el-form-item>
       <el-form-item label="主标题">
         <el-input size="large" v-model="dialogs.json.model" placeholder="左上角" />
       </el-form-item>
@@ -362,6 +372,12 @@ const IconChange = (uploadFileRaw) => {
       </el-form-item>
       <el-form-item label="副次标题">
         <el-input size="large" v-model="dialogs.json.itude" placeholder="右下角" />
+      </el-form-item>
+      <el-form-item label="参数预览">
+        <el-input size="large" v-model="dialogs.outputs" placeholder="请选择参数" />
+        <el-select v-model="dialogs.outputs" placeholder="Select" size="large">
+          <el-option v-for="(item,index) of dialogs.json.output" :key="index" :label="index" :value="item" />
+        </el-select>
       </el-form-item>
       <el-form-item>
         <el-button size="large" type="primary" @click="dialogs.check">确定</el-button>
@@ -389,7 +405,7 @@ p,.el-empty :deep(p){
   padding: 0;
   margin: 0;
   white-space: nowrap;
-  font-family: MiSans,MI Lan Pro,serif;
+  font-family: MiSans,MI Lan Pro,-apple-system-font;
 }
 
 a{
@@ -405,6 +421,7 @@ a{
 
 .el-form .el-select--large{
   flex: 1;
+  min-width: 6rem;
 }
 
 .el-image {
