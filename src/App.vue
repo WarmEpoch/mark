@@ -20,54 +20,59 @@ const log = ref()
 const logSrc = ref()
 const dialogs = ref({
   dialog: false,
+  only: localStorage.getItem('only'),
+  disabled: true,
   index: '0',
   json: {},
+  loading: true,
   check: () => {
     imgs.value[dialogs.value.index] = {...imgs.value[dialogs.value.index],...dialogs.value.json}
-    console.log(imgs.value[dialogs.value.index])
     dialogs.value.dialog = false
   },
   show: async (json,index) => {
     dialogs.value.json = JSON.parse(JSON.stringify(json))
     dialogs.value.outputs = json.output.LensModel
     dialogs.value.index = index
-    if(!localStorage.getItem('ONLY')){
-      
-      await ElMessageBox.prompt('请联系我们获得使用身份码。', '身份码', {
-        confirmButtonText: '确定',
-        cancelButtonText: '联系',
-        inputPattern: /[0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z]/,
-        inputErrorMessage: '请输入六位身份码',
-      }).then(({ value }) => {
-        console.log(value)
-        localStorage.setItem('ONLY',value)
-      }).catch(() => {
-        window.open('//www.immers.icu/#call','_blank')
-      })
-
-    }
-
-    if(!localStorage.getItem('ONLY')) return false
-
-    const time = await axios({
-      method: 'get',
-      url: `https://api.immers.icu/api/Mark/time?only=${localStorage.getItem('ONLY')}`,
-    }).then(res => res.data)
-
-    if(time < Date.parse(new Date()) / 1000){
-      ElMessage({
-          type: 'info',
-          message: 'DIY已到期',
-      })
-      setTimeout(() => {
-        window.open('//www.immers.icu/#call','_blank')
-      },2000)
-      return false
-    }
     dialogs.value.dialog = true
+    if(await dialogs.value.onlyTime(dialogs.value.only)) dialogs.value.disabled = false
+    dialogs.value.loading = false
   },
   delete: (index) => {
     imgs.value.splice(index,1)
+  },
+  close: () => {
+      dialogs.value.disabled = true
+      dialogs.value.loading = true
+  },
+  onlyInput: async (value) => {
+    localStorage.setItem('only',value)
+    if(value.length != 6){
+      dialogs.value.disabled = true
+      return false
+    }
+    const time = await dialogs.value.onlyTime(value)
+    if(time){
+      dialogs.value.disabled = false
+    }else{
+      dialogs.value.disabled = true
+      dialogs.value.only = ''
+      ElMessage({
+        type: 'info',
+        message: '身份码错误',
+      })
+    }
+  },
+  onlyTime: async (only) => {
+    const time = await axios({
+      method: 'get',
+      url: `https://api.immers.icu/api/Mark/time?only=${only}`,
+    }).then(res => res.data)
+
+    if(time > Date.parse(new Date()) / 1000){
+      return true
+    }else{
+      return false
+    }
   }
 })
 
@@ -155,7 +160,6 @@ const ImgChange = async (uploadFileRaw) => {
     lock: true,
     text: '图片加载中',
   })
-  console.log(uploadFileRaw)
 
   if(uploadFileRaw.type !== 'image/png' && uploadFileRaw.type !== 'image/jpeg' && !uploadFileRaw.name.includes('.HEIC')){
     load.close()
@@ -187,7 +191,6 @@ const ImgChange = async (uploadFileRaw) => {
   // logSrc.value = heic ? heic : blob
 
   await exifr.parse(blob).then(output => {
-    console.log(output)
     if(!output){
       load.close()
       ElMessage({
@@ -270,14 +273,15 @@ const Create = async () =>{
     }
     
     await domtoimage.toJpeg(div,{quality: 1}).then(dataUrl => {
-        // div.remove()
-        console.log(dataUrl)
+        div.remove()
         let mark = new Image()
         mark.src = dataUrl
         mark.onload = () => {
           cancon.drawImage(mark,0,imgs.value[index].height)
-          creates.value.unshift(canvas.toDataURL("image/jpeg", 1))
-          canvas.remove()
+          canvas.toBlob(function(blob) {
+            creates.value.unshift(URL.createObjectURL(blob))
+            canvas.remove()
+          },'image/jpeg', 1)
         }
     })
 
@@ -349,43 +353,45 @@ const IconChange = (uploadFileRaw) => {
       </swiper-slide>
     </swiper>
   </el-card>
-  <el-dialog v-model="dialogs.dialog" width="85%" title="自定义">
-    <el-form :model="dialogs.json" label-width="auto" label-position="right">
+  <el-dialog v-model="dialogs.dialog" width="85%" title="自定义" @close="dialogs.close" fullscreen>
+    <el-form :model="dialogs.json" label-width="auto" label-position="right" v-loading="dialogs.loading">
       <el-form-item label="ICON">
-        <el-select v-model="dialogs.json.mark" placeholder="Select" size="large">
+        <el-select v-model="dialogs.json.mark" placeholder="Select" size="large" :disabled="dialogs.disabled">
           <el-option v-for="(item,index) of marks" :key="item.index" :label="item.name" :value="index" />
         </el-select>
         <el-upload :before-upload="IconChange" :show-file-list="false">
           <template #trigger>
-            <el-button type="primary" size="large" style="margin-left: 1rem;">上传</el-button>
+            <el-button type="primary" size="large" style="margin-left: 1rem;" :disabled="dialogs.disabled">上传</el-button>
           </template>
         </el-upload>
       </el-form-item>
       <el-form-item label="主标题">
-        <el-input size="large" v-model="dialogs.json.model" placeholder="左上角" />
+        <el-input size="large" v-model="dialogs.json.model" placeholder="左上角" :disabled="dialogs.disabled" />
       </el-form-item>
       <el-form-item label="副主标题">
-        <el-input size="large" v-model="dialogs.json.focal" placeholder="右上角" />
+        <el-input size="large" v-model="dialogs.json.focal" placeholder="右上角" :disabled="dialogs.disabled" />
       </el-form-item>
       <el-form-item label="次标题">
-        <el-input size="large" v-model="dialogs.json.date" placeholder="左下角" />
+        <el-input size="large" v-model="dialogs.json.date" placeholder="左下角" :disabled="dialogs.disabled" />
       </el-form-item>
       <el-form-item label="副次标题">
-        <el-input size="large" v-model="dialogs.json.itude" placeholder="右下角" />
+        <el-input size="large" v-model="dialogs.json.itude" placeholder="右下角" :disabled="dialogs.disabled" />
       </el-form-item>
       <el-form-item label="参数预览">
-        <el-input size="large" v-model="dialogs.outputs" placeholder="请选择参数" />
-        <el-select v-model="dialogs.outputs" placeholder="Select" size="large">
+        <el-input size="large" v-model="dialogs.outputs" placeholder="请选择参数" :disabled="dialogs.disabled" />
+        <el-select v-model="dialogs.outputs" placeholder="Select" size="large" style="margin-left: 1rem;" :disabled="dialogs.disabled">
           <el-option v-for="(item,index) of dialogs.json.output" :key="index" :label="index" :value="item" />
         </el-select>
       </el-form-item>
-      <el-form-item>
-        <el-button size="large" type="primary" @click="dialogs.check">确定</el-button>
+      <el-form-item label="身份码">
+        <el-input size="large" v-model="dialogs.only" maxlength="6" placeholder="六位身份码" @input="dialogs.onlyInput" />
+        <el-button size="large" type="primary" @click="dialogs.check" style="margin-left: 1rem;" :disabled="dialogs.disabled">确定</el-button>
       </el-form-item>
+      <el-image src="http://shp.qpic.cn/collector/1523230910/3522ceeb-3d8f-484b-b86b-5d83c033c4dc/0"></el-image>
     </el-form>
   </el-dialog>
 
-  <el-dialog v-model="preView" @close="PreViewClose" width="85%" title="保存">
+  <el-dialog v-model="preView" @close="PreViewClose" width="85%" title="保存" fullscreen>
     <swiper>
       <swiper-slide v-for="(create,index) of creates" :key="index">
         <el-image :src="create"></el-image>
@@ -421,7 +427,7 @@ a{
 
 .el-form .el-select--large{
   flex: 1;
-  min-width: 6rem;
+  min-width: 4.3rem;
 }
 
 .el-image {
