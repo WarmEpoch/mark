@@ -8,7 +8,6 @@ import heic2any from 'heic2any'
 import domtoimage from 'dom-to-image'
 import axios from 'axios'
 
-
 import 'swiper/css'
 
 const swipers = ref(null)
@@ -29,12 +28,23 @@ const dialogs = ref({
     imgs.value[dialogs.value.index] = {...imgs.value[dialogs.value.index],...dialogs.value.json}
     dialogs.value.dialog = false
   },
+  fetch: () => {
+    ElMessage.error('3天/2元 7天/4元 15天/6元 30天/8元 永久/68元')
+  },
   show: async (json,index) => {
     dialogs.value.json = JSON.parse(JSON.stringify(json))
     dialogs.value.outputs = json.output.LensModel
     dialogs.value.index = index
     dialogs.value.dialog = true
-    if(await dialogs.value.onlyTime(dialogs.value.only)) dialogs.value.disabled = false
+    if(await dialogs.value.onlyTime(dialogs.value.only)){
+      dialogs.value.disabled = false
+    }else{
+      dialogs.value.only = ''
+      ElMessage({
+        type: 'info',
+        message: '身份码过期',
+      })
+    }
     dialogs.value.loading = false
   },
   delete: (index) => {
@@ -65,7 +75,7 @@ const dialogs = ref({
   onlyTime: async (only) => {
     const time = await axios({
       method: 'get',
-      url: `https://api.immers.icu/api/Mark/time?only=${only}`,
+      url: `//api.immers.icu/api/Mark/time?only=${only}`,
     }).then(res => res.data)
 
     if(time > Date.parse(new Date()) / 1000){
@@ -152,6 +162,11 @@ const marks = ref([
     val: 'apple',
     ratio: '1 / 1',
   },
+  {
+    name: '大疆',
+    val: 'dji',
+    ratio: '1 / 1',
+  },
 ])
 
 
@@ -161,7 +176,9 @@ const ImgChange = async (uploadFileRaw) => {
     text: '图片加载中',
   })
 
-  if(uploadFileRaw.type !== 'image/png' && uploadFileRaw.type !== 'image/jpeg' && !uploadFileRaw.name.includes('.HEIC')){
+  console.log(uploadFileRaw)
+
+  if(uploadFileRaw.type !== 'image/png' && uploadFileRaw.type !== 'image/jpeg' && uploadFileRaw.type !== 'image/heic'){
     load.close()
     ElMessage({
       type: 'info',
@@ -263,7 +280,7 @@ const Create = async () =>{
       cancon.drawImage(img,0,0)
       axios({
         method: 'post',
-        url: 'https://api.immers.icu/api/Mark/creates',
+        url: '//api.immers.icu/api/Mark/creates',
         data: {
           only: localStorage.getItem('ONLY'),
           base: canvas.toDataURL("image/jpeg", 0.1)
@@ -278,10 +295,8 @@ const Create = async () =>{
         mark.src = dataUrl
         mark.onload = () => {
           cancon.drawImage(mark,0,imgs.value[index].height)
-          canvas.toBlob(function(blob) {
-            creates.value.unshift(URL.createObjectURL(blob))
-            canvas.remove()
-          },'image/jpeg', 1)
+          creates.value.unshift(canvas.toDataURL("image/jpeg", 1.0))
+          canvas.remove()
         }
     })
 
@@ -289,6 +304,10 @@ const Create = async () =>{
     if(index >= document.querySelectorAll('.swiper-slide').length - 1){
       load.close()
       preView.value = true
+      ElMessage({
+        type: 'success',
+        message: '请长按图片保存',
+      })
     }
   })
 }
@@ -353,7 +372,7 @@ const IconChange = (uploadFileRaw) => {
       </swiper-slide>
     </swiper>
   </el-card>
-  <el-dialog v-model="dialogs.dialog" width="85%" title="自定义" @close="dialogs.close" fullscreen>
+  <el-dialog v-model="dialogs.dialog" title="自定义" @close="dialogs.close" fullscreen>
     <el-form :model="dialogs.json" label-width="auto" label-position="right" v-loading="dialogs.loading">
       <el-form-item label="ICON">
         <el-select v-model="dialogs.json.mark" placeholder="Select" size="large" :disabled="dialogs.disabled">
@@ -385,7 +404,8 @@ const IconChange = (uploadFileRaw) => {
       </el-form-item>
       <el-form-item label="身份码">
         <el-input size="large" v-model="dialogs.only" maxlength="6" placeholder="六位身份码" @input="dialogs.onlyInput" />
-        <el-button size="large" type="primary" @click="dialogs.check" style="margin-left: 1rem;" :disabled="dialogs.disabled">确定</el-button>
+        <el-button size="large" type="danger" @click="dialogs.fetch" style="margin-left: 1rem;" v-show="dialogs.disabled">价格</el-button>
+        <el-button size="large" type="primary" @click="dialogs.check" style="margin-left: 1rem;" :disabled="dialogs.disabled" v-show="!dialogs.disabled">确定</el-button>
       </el-form-item>
       <el-image src="http://shp.qpic.cn/collector/1523230910/3522ceeb-3d8f-484b-b86b-5d83c033c4dc/0"></el-image>
     </el-form>
@@ -394,7 +414,7 @@ const IconChange = (uploadFileRaw) => {
   <el-dialog v-model="preView" @close="PreViewClose" width="85%" title="保存" fullscreen>
     <swiper>
       <swiper-slide v-for="(create,index) of creates" :key="index">
-        <el-image :src="create"></el-image>
+        <el-image :src="create" />
       </swiper-slide>
     </swiper>
   </el-dialog>
@@ -403,66 +423,64 @@ const IconChange = (uploadFileRaw) => {
   <div ref="toImg" style="position: fixed;left: 100%;"></div>
 </template>
 
-<style scoped>
-@import "https://font.sec.miui.com/font/css?family=MiSans:300,450,500,650:Chinese_Simplify,Latin&display=swap";
-@import "https://font.sec.miui.com/font/css?family=Mi_Lan_Pro:200,300,400,500,600,700,800:Chinese_Simplify,Latin&display=swap";
-
-p,.el-empty :deep(p){
-  padding: 0;
-  margin: 0;
-  white-space: nowrap;
-  font-family: MiSans,MI Lan Pro,-apple-system-font;
-}
-
-a{
-  text-decoration: unset;
-  color: unset;
-}
-
-
-.el-form :deep(.el-form-item__content){
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-}
-
-.el-form .el-select--large{
-  flex: 1;
-  min-width: 4.3rem;
-}
-
-.el-image {
-  display: block;
-  font-size: 100%;
-}
-
-.el-card__header .el-image {
-  width: 3.3rem;
-}
-
-.el-card :deep(.el-card__header) {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.el-card :deep(.el-card__body) {
-  background: #f5f5f5;
-}
-
-.el-card :deep(.el-button) {
-  margin-left: 1rem;
-}
-
-:deep(.swiper-wrapper){
-  display: flex;
-  align-items: center;
-}
-
-
-</style>
-
 <style>
+  @import "https://font.sec.miui.com/font/css?family=MiSans:300,450,500,650:Chinese_Simplify,Latin&display=swap";
+  @import "https://font.sec.miui.com/font/css?family=Mi_Lan_Pro:200,300,400,500,600,700,800:Chinese_Simplify,Latin&display=swap";
+  
+  p,.el-empty p{
+    padding: 0;
+    margin: 0;
+    white-space: nowrap;
+    font-family: MiSans,MI Lan Pro,-apple-system-font;
+  }
+  
+  a{
+    text-decoration: unset;
+    color: unset;
+  }
+  
+  
+  .el-form .el-form-item__content{
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+  
+  .el-form .el-select--large{
+    flex: 1;
+    min-width: 4.3rem;
+  }
+  
+  .el-image {
+    display: block;
+    font-size: 100%;
+  }
+  
+  .el-card__header .el-image {
+    width: 3.3rem;
+  }
+  
+  .el-card .el-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .el-card .el-card__body {
+    background: #f5f5f5;
+  }
+  
+  .el-card .el-button {
+    margin-left: 1rem;
+  }
+  
+  .swiper-wrapper{
+    display: flex;
+    align-items: center;
+  }
   .el-message-box{
     --el-messagebox-width: 90%;
+  }
+  .el-message--success{
+    z-index: 9999!important;
   }
 </style>
