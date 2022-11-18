@@ -167,6 +167,11 @@ const marks = ref([
     val: 'dji',
     ratio: '1 / 1',
   },
+  {
+    name: 'Lumix',
+    val: 'lumix',
+    ratio: '3 / 2',
+  },
 ])
 
 
@@ -178,19 +183,17 @@ const ImgChange = async (uploadFileRaw) => {
 
   console.log(uploadFileRaw)
 
-  if(uploadFileRaw.type !== 'image/png' && uploadFileRaw.type !== 'image/jpeg' && uploadFileRaw.type !== 'image/heic'){
-    load.close()
-    ElMessage({
-      type: 'info',
-      message: '图像格式不支持',
-    })
-    return false
-  }
+  // if(uploadFileRaw.type !== 'image/png' && uploadFileRaw.type !== 'image/jpeg' && uploadFileRaw.type !== 'image/heic'){
+  //   load.close()
+  //   ElMessage({
+  //     type: 'info',
+  //     message: '图像格式不支持',
+  //   })
+  //   return false
+  // }
   
   let blob = URL.createObjectURL(uploadFileRaw)
-
-
-  const heic = await heic2any({
+  let heic = await heic2any({
     blob: uploadFileRaw,
     toType: "image/jpeg",
     quality: 1,
@@ -208,6 +211,7 @@ const ImgChange = async (uploadFileRaw) => {
   // logSrc.value = heic ? heic : blob
 
   await exifr.parse(blob).then(output => {
+    console.log(output)
     if(!output){
       load.close()
       ElMessage({
@@ -228,7 +232,7 @@ const ImgChange = async (uploadFileRaw) => {
         width: createHW.width,
         model: output.Model || 'Immers',
         date: output.GPSLatitudeRef && output.CreateDate ? format(output.CreateDate) : '',
-        focal: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${output?.FocalLengthIn35mmFormat || output?.FocalLength || false}mm f/${ output?.FNumber || false } ${output.ExposureTime ? output.ExposureTime >= 1 ? output.ExposureTime : `1/${1 / output.ExposureTime}` : false} ISO${ output?.ISO || false }` : 'ImmersMark',
+        focal: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${output?.FocalLengthIn35mmFormat || output?.FocalLength || false}mm f/${ output?.FNumber || false } ${output.ExposureTime ? output.ExposureTime >= 1 ? `${output.ExposureTime}"` : `1/${parseInt(1 / output.ExposureTime)}` : false} ISO${ output?.ISO || false }` : 'ImmersMark',
         itude: output.GPSLatitudeRef && output.GPSLatitudeRef ? `${output.GPSLatitude[0]}° ${output.GPSLatitude[1]}' ${Math.round(output.GPSLatitude[2])}"${output.GPSLatitudeRef} ${output.GPSLongitude[0]}° ${output.GPSLongitude[1]}' ${Math.round(output.GPSLongitude[2])}"${output.GPSLongitudeRef}` : output.CreateDate ?  format(output.CreateDate) : format(new Date()),
         output
       })
@@ -266,7 +270,7 @@ const Create = async () =>{
 
   document.querySelectorAll('.swiper-slide').forEach(async (el,index) => {
     let div = el.querySelector('.mark').cloneNode(true)
-    div.style.zoom = 'unset'
+    div.style.transform = 'unset'
     toImg.value.append(div)
 
     let canvas = document.createElement('canvas')
@@ -295,6 +299,11 @@ const Create = async () =>{
         mark.src = dataUrl
         mark.onload = () => {
           cancon.drawImage(mark,0,imgs.value[index].height)
+          // canvas.toBlob(function(blob) {
+          //   creates.value.unshift(URL.createObjectURL(blob))
+          //   URL.revokeObjectURL(blob)
+          //   canvas.remove()
+          // }, "image/jpeg", 1.0)
           creates.value.unshift(canvas.toDataURL("image/jpeg", 1.0))
           canvas.remove()
         }
@@ -355,15 +364,15 @@ const IconChange = (uploadFileRaw) => {
             <el-image :src="img.src" />
           </template>
         </el-popconfirm>
-        <div @click="dialogs.show(img,index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',zoom: swipers.$el.clientWidth / img.width,display: 'flex',justifyContent: 'space-between',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
-          <div style="display: flex;flex-flow: column wrap;">
+        <div @click="dialogs.show(img,index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',alignItems: 'center',justifyContent: 'space-between',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
+          <div style="display: flex;justify-content: space-between;flex-flow: column wrap;">
             <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ img.model }}</p>
-            <p style="font-size: .69em;color: #818185;">{{ img.date }}</p>
+            <p style="font-size: .69em;color: #818185;" v-if="img.date || img.itude">{{ img.date }}</p>
           </div>
-          <div style="display: flex;flex-flow: column wrap;position: relative;">
-            <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{position: 'absolute',top: `${img.width > img.height ? img.width * 0.0103 + 'px' : img.width * 0.014 + 'px'}`,bottom: `${img.width > img.height ? img.width * 0.0028 + 'px' : img.width * 0.0045 + 'px'}`,left: `-${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,transform: 'translateX(-100%)',paddingRight: `${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,borderRight: `solid ${img.width * 0.001}px #ccc`,aspectRatio: marks[img.mark].ratio}" ></el-image>
+          <div style="display: flex;flex-flow: column wrap;justify-content: space-between;position: relative;">
+            <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{position: 'absolute',top: `${img.date || img.itude ? img.width > img.height ? `${img.width * 0.0103}px` : `${img.width * 0.014}px` : `${img.width * 0.0026}px`}`,bottom: `${img.date || img.itude ? img.width > img.height ? `${img.width * 0.0028}px` : `${img.width * 0.0045}px` : `${img.width * 0.0026}px`}`,left: `-${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,transform: 'translateX(-100%)',paddingRight: `${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,borderRight: `solid ${img.width * 0.0013}px #ccc`,aspectRatio: marks[img.mark].ratio}" ></el-image>
             <p :style="{fontWeight: 'bold',fontSize: img.width > img.height ? '.84em' : '.78em',lineHeight: img.width > img.height ? '2.15em' : '2em'}">{{ img.focal }}</p>
-            <p style="font-size: .67em;color: #7f7f7f;">{{ img.itude }}</p>
+            <p style="font-size: .67em;color: #7f7f7f;" v-if="img.itude || img.date">{{ img.itude }}</p>
           </div>
         </div>
       </swiper-slide>
@@ -407,11 +416,11 @@ const IconChange = (uploadFileRaw) => {
         <el-button size="large" type="danger" @click="dialogs.fetch" style="margin-left: 1rem;" v-show="dialogs.disabled">价格</el-button>
         <el-button size="large" type="primary" @click="dialogs.check" style="margin-left: 1rem;" :disabled="dialogs.disabled" v-show="!dialogs.disabled">确定</el-button>
       </el-form-item>
-      <el-image src="http://shp.qpic.cn/collector/1523230910/3522ceeb-3d8f-484b-b86b-5d83c033c4dc/0"></el-image>
+      <el-image src="https://shp.qpic.cn/collector/1523230910/3522ceeb-3d8f-484b-b86b-5d83c033c4dc/0"></el-image>
     </el-form>
   </el-dialog>
 
-  <el-dialog v-model="preView" @close="PreViewClose" width="85%" title="保存" fullscreen>
+  <el-dialog v-model="preView" @close="PreViewClose" width="85%" title="保存" custom-class="create" fullscreen>
     <swiper>
       <swiper-slide v-for="(create,index) of creates" :key="index">
         <el-image :src="create" />
@@ -427,11 +436,15 @@ const IconChange = (uploadFileRaw) => {
   @import "https://font.sec.miui.com/font/css?family=MiSans:300,450,500,650:Chinese_Simplify,Latin&display=swap";
   @import "https://font.sec.miui.com/font/css?family=Mi_Lan_Pro:200,300,400,500,600,700,800:Chinese_Simplify,Latin&display=swap";
   
+  body{
+    margin: 0;
+  }
+
   p,.el-empty p{
     padding: 0;
     margin: 0;
     white-space: nowrap;
-    font-family: MiSans,MI Lan Pro,-apple-system-font;
+    font-family: MiSans,MI Lan Pro,-apple-system,-apple-system-font;
   }
   
   a{
@@ -472,15 +485,19 @@ const IconChange = (uploadFileRaw) => {
   .el-card .el-button {
     margin-left: 1rem;
   }
-  
-  .swiper-wrapper{
-    display: flex;
-    align-items: center;
-  }
   .el-message-box{
     --el-messagebox-width: 90%;
   }
   .el-message--success{
     z-index: 9999!important;
+  }
+
+  .create{
+    background: #f5f5f5;
+  }
+  .create .el-dialog__header{
+    background: #fff;
+    margin-right: unset;
+    padding-bottom: var(--el-dialog-padding-primary);
   }
 </style>
