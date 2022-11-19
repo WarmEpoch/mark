@@ -90,21 +90,25 @@ const marks = ref([
   {
     name: '徕卡',
     val: 'leica',
+    mark: 'leica',
     ratio: '1 / 1',
   },
   {
     name: '哈苏',
     val: 'hasu',
+    mark: 'hasu',
     ratio: '1 / 1',
   },
   {
     name: '阿莱',
     val: 'arri',
+    mark: 'arri',
     ratio: '3 / 2',
   },
   {
     name: '蔡司',
     val: 'zeiss',
+    mark: 'zeiss',
     ratio: '1 / 1',
   },
   {
@@ -115,61 +119,73 @@ const marks = ref([
   {
     name: '索尼',
     val: 'sony',
+    mark: 'sony',
     ratio: '3 / 2',
   },
   {
     name: '佳能',
     val: 'canon',
+    mark: 'canon',
     ratio: '3 / 2',
   },
   {
     name: '尼康',
     val: 'nikon',
+    mark: 'NIKON CORPORATION',
     ratio: '3 / 2',
   },
   {
     name: 'FotorGear',
     val: 'fotorgear',
+    mark: 'fotorgear',
     ratio: '1 / 1',
   },
   {
     name: 'SIGMA',
     val: 'sigma',
+    mark: 'sigma',
     ratio: '3 / 2',
   },
   {
     name: '宾得',
     val: 'pentax',
+    mark: 'pentax',
     ratio: '3 / 2',
   },
   {
     name: '奥林巴斯',
     val: 'olympus',
+    mark: 'olympus',
     ratio: '3 / 2',
   },
   {
     name: 'TAMRON',
     val: 'tamron',
+    mark: 'tamron',
     ratio: '3 / 2',
   },
   {
     name: 'RICOH',
     val: 'ricoh',
+    mark: 'ricoh',
     ratio: '3 / 2',
   },
   {
     name: '苹果',
     val: 'apple',
+    mark: 'apple',
     ratio: '1 / 1',
   },
   {
     name: '大疆',
     val: 'dji',
+    mark: 'dji',
     ratio: '1 / 1',
   },
   {
     name: 'Lumix',
     val: 'lumix',
+    mark: 'lumix',
     ratio: '3 / 2',
   },
 ])
@@ -220,8 +236,7 @@ const ImgChange = async (uploadFileRaw) => {
       })
       return false
     }
-    let markIndex = output.Make ? marks.value.findIndex(item => item.val == output.Make.toLowerCase()) : -1
-    let mark = markIndex >= 0 ? markIndex : 0
+    let mark = (output.Make && marks.value.findIndex(item => output.Make.toLowerCase().search(item.val) >= 0 ? true : false)) || 0
     // log.value = output
     createHW.onload = () => {
       imgs.value.unshift({
@@ -248,16 +263,11 @@ const ImgChange = async (uploadFileRaw) => {
 
 const format = (Date) => {
   var Y = Date.getFullYear();
-  var M = Date.getMonth() + 1;
-  M = M < 10 ? '0' + M : M;
-  var D = Date.getDate();
-  D = D < 10 ? '0' + D : D;
-  var H = Date.getHours();
-  H = H < 10 ? '0' + H : H;
-  var Mi = Date.getMinutes();
-  Mi = Mi < 10 ? '0' + Mi : Mi;
-  var S = Date.getSeconds();
-  S = S < 10 ? '0' + S : S;
+  var M = (Date.getMonth() + 1 + '').padStart(2,'0');
+  var D = (Date.getDate() + 1 + '').padStart(2,'0');
+  var H = (Date.getHours() + 1 + '').padStart(2,'0');
+  var Mi = (Date.getMinutes() + 1 + '').padStart(2,'0');
+  var S = (Date.getSeconds() + 1 + '').padStart(2,'0');
   return Y + '.' + M + '.' + D + ' ' + H + ':' + Mi + ':' + S;
 }
 
