@@ -90,25 +90,21 @@ const marks = ref([
   {
     name: '徕卡',
     val: 'leica',
-    mark: 'leica',
     ratio: '1 / 1',
   },
   {
     name: '哈苏',
     val: 'hasu',
-    mark: 'hasu',
     ratio: '1 / 1',
   },
   {
     name: '阿莱',
     val: 'arri',
-    mark: 'arri',
     ratio: '3 / 2',
   },
   {
     name: '蔡司',
     val: 'zeiss',
-    mark: 'zeiss',
     ratio: '1 / 1',
   },
   {
@@ -119,73 +115,61 @@ const marks = ref([
   {
     name: '索尼',
     val: 'sony',
-    mark: 'sony',
     ratio: '3 / 2',
   },
   {
     name: '佳能',
     val: 'canon',
-    mark: 'canon',
     ratio: '3 / 2',
   },
   {
     name: '尼康',
     val: 'nikon',
-    mark: 'NIKON CORPORATION',
     ratio: '3 / 2',
   },
   {
     name: 'FotorGear',
     val: 'fotorgear',
-    mark: 'fotorgear',
     ratio: '1 / 1',
   },
   {
     name: 'SIGMA',
     val: 'sigma',
-    mark: 'sigma',
     ratio: '3 / 2',
   },
   {
     name: '宾得',
     val: 'pentax',
-    mark: 'pentax',
     ratio: '3 / 2',
   },
   {
     name: '奥林巴斯',
     val: 'olympus',
-    mark: 'olympus',
     ratio: '3 / 2',
   },
   {
     name: 'TAMRON',
     val: 'tamron',
-    mark: 'tamron',
     ratio: '3 / 2',
   },
   {
     name: 'RICOH',
     val: 'ricoh',
-    mark: 'ricoh',
     ratio: '3 / 2',
   },
   {
     name: '苹果',
     val: 'apple',
-    mark: 'apple',
     ratio: '1 / 1',
   },
   {
     name: '大疆',
     val: 'dji',
-    mark: 'dji',
     ratio: '1 / 1',
   },
   {
     name: 'Lumix',
     val: 'lumix',
-    mark: 'lumix',
     ratio: '3 / 2',
   },
 ])
@@ -208,13 +192,14 @@ const ImgChange = async (uploadFileRaw) => {
   //   return false
   // }
   
+  
   let blob = URL.createObjectURL(uploadFileRaw)
-  let heic = await heic2any({
+  const heic = await heic2any({
     blob: uploadFileRaw,
     toType: "image/jpeg",
     quality: 1,
   })
-  .then(function (resultBlob) {
+  .then(async (resultBlob) => {
     return URL.createObjectURL(resultBlob)
   })
   .catch(function (x) {
@@ -264,11 +249,23 @@ const ImgChange = async (uploadFileRaw) => {
 const format = (Date) => {
   var Y = Date.getFullYear();
   var M = (Date.getMonth() + 1 + '').padStart(2,'0');
-  var D = (Date.getDate() + 1 + '').padStart(2,'0');
-  var H = (Date.getHours() + 1 + '').padStart(2,'0');
-  var Mi = (Date.getMinutes() + 1 + '').padStart(2,'0');
-  var S = (Date.getSeconds() + 1 + '').padStart(2,'0');
+  var D = (Date.getDate() + '').padStart(2,'0');
+  var H = (Date.getHours() + '').padStart(2,'0');
+  var Mi = (Date.getMinutes() + '').padStart(2,'0');
+  var S = (Date.getSeconds() + '').padStart(2,'0');
   return Y + '.' + M + '.' + D + ' ' + H + ':' + Mi + ':' + S;
+}
+
+
+const createBase = async (file) => {
+  const base = await new Promise((resolve, reject) => {
+      const reader  = new FileReader();
+      reader.addEventListener("load", function () {
+        resolve(reader.result)
+      }, false)
+      reader.readAsDataURL(file)
+  })
+  return base
 }
 
 const Create = async () =>{
@@ -288,10 +285,11 @@ const Create = async () =>{
     canvas.height = imgs.value[index].height + div.clientHeight
     toImg.value.append(canvas)
     let cancon = canvas.getContext('2d')
-    let img = new Image()
-    img.src = imgs.value[index].src
-    img.onload =  () => {
-      cancon.drawImage(img,0,0)
+    // let img = new Image()
+    // img.src = imgs.value[index].src
+    // img.onload =  () => {
+      // console.log(el.querySelector('img'))
+      cancon.drawImage(el.querySelector('img'),0,0)
       axios({
         method: 'post',
         url: '//api.immers.icu/api/Mark/creates',
@@ -301,7 +299,7 @@ const Create = async () =>{
         }
       })
       
-    }
+    // }
     
     await domtoimage.toJpeg(div,{quality: 1}).then(dataUrl => {
         div.remove()
@@ -439,7 +437,7 @@ const IconChange = (uploadFileRaw) => {
   </el-dialog>
   <!-- <p v-text="log"></p> -->
   <!-- <el-image :src="logSrc"></el-image> -->
-  <div ref="toImg" style="position: fixed;left: 100%;"></div>
+  <div ref="toImg" id="toImg"></div>
 </template>
 
 <style>
@@ -509,5 +507,12 @@ const IconChange = (uploadFileRaw) => {
     background: #fff;
     margin-right: unset;
     padding-bottom: var(--el-dialog-padding-primary);
+  }
+  #toImg{
+    position: fixed;
+    right: 100%;
+  }
+  #toImg canvas{
+    width: 100%;
   }
 </style>
