@@ -375,12 +375,12 @@ const IconChange = (uploadFileRaw) => {
         <div @click="dialogs.show(img,index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',alignItems: 'center',justifyContent: 'space-between',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
           <div style="display: flex;justify-content: space-between;flex-flow: column wrap;">
             <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ img.model }}</p>
-            <p style="font-size: .69em;color: #818185;" v-if="img.date || img.itude">{{ img.date }}</p>
+            <p style="font-size: .69em;color: #818185;" :style="{opacity: img.date && img.itude ? '1' : '0'}" v-if="img.date || img.itude">{{ (img.itude && img.date) || 'no date' }}</p>
           </div>
           <div style="display: flex;flex-flow: column wrap;justify-content: space-between;position: relative;">
             <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{position: 'absolute',top: `${img.date || img.itude ? img.width > img.height ? `${img.width * 0.0103}px` : `${img.width * 0.014}px` : `${img.width * 0.0026}px`}`,bottom: `${img.date || img.itude ? img.width > img.height ? `${img.width * 0.0028}px` : `${img.width * 0.0045}px` : `${img.width * 0.0026}px`}`,left: `-${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,transform: 'translateX(-100%)',paddingRight: `${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,borderRight: `solid ${img.width * 0.0013}px #ccc`,aspectRatio: marks[img.mark].ratio}" ></el-image>
             <p :style="{fontWeight: 'bold',fontSize: img.width > img.height ? '.84em' : '.78em',lineHeight: img.width > img.height ? '2.15em' : '2em'}">{{ img.focal }}</p>
-            <p style="font-size: .67em;color: #7f7f7f;" v-if="img.itude || img.date">{{ img.itude }}</p>
+            <p style="font-size: .67em;color: #7f7f7f;" v-if="img.itude || img.date">{{ img.itude || img.date }}</p>
           </div>
         </div>
       </swiper-slide>
