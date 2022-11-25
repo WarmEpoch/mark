@@ -19,27 +19,35 @@ const log = ref()
 const logSrc = ref()
 const dialogs = ref({
   dialog: false,
-  only: localStorage.getItem('only'),
+  only: localStorage.getItem('only') || false,
   disabled: true,
   index: '0',
-  json: {},
+  input: '',
+  json: {
+    mainTitle: 'Model',
+    mainSubTitle: 'itude',
+    subMainTitle: 'date',
+    subTitle: 'focal',
+    mark: 'leica',
+  },
+  customs: JSON.parse(localStorage.getItem('customs')) || [],
   loading: true,
   check: () => {
-    imgs.value[dialogs.value.index] = {...imgs.value[dialogs.value.index],...dialogs.value.json}
+    console.log(dialogs.value.json)
     dialogs.value.dialog = false
   },
   fetch: () => {
     ElMessage.error('3天/2元 7天/4元 15天/6元 30天/8元 永久/68元')
   },
-  show: async (json,index) => {
-    dialogs.value.json = JSON.parse(JSON.stringify(json))
-    dialogs.value.outputs = json.output.LensModel
+  show: async index => {
     dialogs.value.index = index
+    dialogs.value.json.mark = imgs.value[dialogs.value.index].mark
     dialogs.value.dialog = true
-    if(await dialogs.value.onlyTime(dialogs.value.only)){
+    if(dialogs.value.only && await dialogs.value.onlyTime(dialogs.value.only)){
       dialogs.value.disabled = false
     }else{
       dialogs.value.only = ''
+      localStorage.removeItem('only')
       ElMessage({
         type: 'info',
         message: '身份码过期',
@@ -66,6 +74,7 @@ const dialogs = ref({
     }else{
       dialogs.value.disabled = true
       dialogs.value.only = ''
+      localStorage.removeItem('only')
       ElMessage({
         type: 'info',
         message: '身份码错误',
@@ -83,10 +92,15 @@ const dialogs = ref({
     }else{
       return false
     }
+  },
+  addCustom: () => {
+    dialogs.value.customs.push(dialogs.value.input)
+    localStorage.setItem('customs',JSON.stringify(dialogs.value.customs))
+    dialogs.value.input = ''
   }
 })
-
-const marks = ref([
+const lsMarks = JSON.parse(localStorage.getItem('marks')) || []
+const marks = ref([...lsMarks,...[
   {
     name: '徕卡',
     val: 'leica',
@@ -172,7 +186,7 @@ const marks = ref([
     val: 'lumix',
     ratio: '3 / 2',
   },
-])
+]])
 
 
 const ImgChange = async (uploadFileRaw) => {
@@ -224,18 +238,49 @@ const ImgChange = async (uploadFileRaw) => {
     let mark = (output.Make && marks.value.findIndex(item => output.Make.toLowerCase().search(item.val) >= 0 ? true : false)) || 0
     // log.value = output
     createHW.onload = () => {
-      imgs.value.unshift({
-        name: uploadFileRaw.name.split('.')[0],
-        src: heic || blob,
-        mark,
-        height: createHW.height,
-        width: createHW.width,
-        model: output.Model || 'Immers',
-        date: output.GPSLatitudeRef && output.CreateDate ? format(output.CreateDate) : '',
-        focal: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${output?.FocalLengthIn35mmFormat || output?.FocalLength || false}mm f/${ output?.FNumber || false } ${output.ExposureTime ? output.ExposureTime >= 1 ? `${output.ExposureTime}"` : `1/${parseInt(1 / output.ExposureTime)}` : false} ISO${ output?.ISO || false }` : 'ImmersMark',
-        itude: output.GPSLatitudeRef && output.GPSLatitudeRef ? `${output.GPSLatitude[0]}° ${output.GPSLatitude[1]}' ${Math.round(output.GPSLatitude[2])}"${output.GPSLatitudeRef} ${output.GPSLongitude[0]}° ${output.GPSLongitude[1]}' ${Math.round(output.GPSLongitude[2])}"${output.GPSLongitudeRef}` : output.CreateDate ?  format(output.CreateDate) : format(new Date()),
-        output
+      let obj = {
+        // ...output
+      }
+      Object.defineProperties(obj, {
+        'name': {
+          value: uploadFileRaw.name.split('.')[0],
+        },
+        'src': {
+          value: heic || blob,
+        },
+        'mark': {
+          value: mark,
+          writable: true,
+        },
+        'height': {
+          value: createHW.height,
+        },
+        'width': {
+          value: createHW.width,
+        },
+        'Model': {
+          value: output.Model || 'Immers',
+          enumerable: true,
+        },
+        'date': {
+          value: output.CreateDate && format(output.CreateDate),
+          enumerable: true,
+        },
+        'focal': {
+          value: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${output?.FocalLengthIn35mmFormat || output?.FocalLength || false}mm f/${ output?.FNumber || false } ${output.ExposureTime ? output.ExposureTime >= 1 ? `${output.ExposureTime}"` : `1/${parseInt(1 / output.ExposureTime)}` : false} ISO${ output?.ISO || false }` : 'ImmersMark',
+          enumerable: true,
+        },
+        'itude': {
+          value: (output.GPSLatitudeRef && `${output.GPSLatitude[0]}° ${output.GPSLatitude[1]}' ${Math.round(output.GPSLatitude[2])}"${output.GPSLatitudeRef} ${output.GPSLongitude[0]}° ${output.GPSLongitude[1]}' ${Math.round(output.GPSLongitude[2])}"${output.GPSLongitudeRef}`),
+          enumerable: output.GPSLatitudeRef ? true : false,
+        },
+        'lens': {
+          value: output.LensModel,
+          enumerable: true,
+        }
       })
+      console.log(obj)
+      imgs.value.unshift(obj)
     }
   })
 
@@ -333,23 +378,25 @@ const PreViewClose = () => {
   creates.value = []
 }
 
-const IconChange = (uploadFileRaw) => {
+const IconChange = async (uploadFileRaw) => {
   let createHw = new Image()
-  createHw.src = URL.createObjectURL(uploadFileRaw)
+  createHw.src = await createBase(uploadFileRaw)
   createHw.onload = () => {
-    marks.value.unshift({
+    let json = {
       name: uploadFileRaw.name.split('.')[0],
       val: createHw.src,
       ratio: `${createHw.width} / ${createHw.height}`,
       custom: true,
-    })
+    }
+    let lsMarks = JSON.parse(localStorage.getItem('marks')) || []
+    lsMarks.unshift(json)
+    localStorage.setItem('marks',JSON.stringify(lsMarks))
+    marks.value.unshift(json)
     dialogs.value.json.mark = 0
   }
   
   return false
 }
-
-
 </script>
 <template>
   <el-card>
@@ -372,15 +419,19 @@ const IconChange = (uploadFileRaw) => {
             <el-image :src="img.src" />
           </template>
         </el-popconfirm>
-        <div @click="dialogs.show(img,index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',alignItems: 'center',justifyContent: 'space-between',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
+        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',justifyContent: 'space-between',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
           <div style="display: flex;justify-content: space-between;flex-flow: column wrap;">
-            <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ img.model }}</p>
-            <p style="font-size: .69em;color: #818185;" :style="{opacity: img.date && img.itude ? '1' : '0'}" v-if="img.date || img.itude">{{ (img.itude && img.date) || 'no date' }}</p>
+            <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}</p>
+            <p style="font-size: .69em;color: #818185;">{{ ((dialogs.json.mainSubTitle != '' && img[dialogs.json.mainSubTitle]) || typeof(dialogs.json.mainSubTitle) == 'number') ? typeof(dialogs.json.subMainTitle) == 'number' ? dialogs.customs[dialogs.json.subMainTitle] : img[dialogs.json.subMainTitle] : '' }}</p>
           </div>
+                                                                            <!-- //mainTitle 左上角
+                                                                            //subTitle 右上角
+                                                                            //subMainTitle 左下角
+                                                                            //mainSubTitle 右下角 -->
           <div style="display: flex;flex-flow: column wrap;justify-content: space-between;position: relative;">
-            <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{position: 'absolute',top: `${img.date || img.itude ? img.width > img.height ? `${img.width * 0.0103}px` : `${img.width * 0.014}px` : `${img.width * 0.0026}px`}`,bottom: `${img.date || img.itude ? img.width > img.height ? `${img.width * 0.0028}px` : `${img.width * 0.0045}px` : `${img.width * 0.0026}px`}`,left: `-${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,transform: 'translateX(-100%)',paddingRight: `${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,borderRight: `solid ${img.width * 0.0013}px #ccc`,aspectRatio: marks[img.mark].ratio}" ></el-image>
-            <p :style="{fontWeight: 'bold',fontSize: img.width > img.height ? '.84em' : '.78em',lineHeight: img.width > img.height ? '2.15em' : '2em'}">{{ img.focal }}</p>
-            <p style="font-size: .67em;color: #7f7f7f;" v-if="img.itude || img.date">{{ img.itude || img.date }}</p>
+            <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{position: 'absolute',top: `${img[dialogs.json.subMainTitle] || img[dialogs.json.mainSubTitle] ? img.width > img.height ? `${img.width * 0.0103}px` : `${img.width * 0.014}px` : `${img.width * 0.0026}px`}`,bottom: `${img[dialogs.json.subMainTitle] || img[dialogs.json.mainSubTitle] ? img.width > img.height ? `${img.width * 0.0028}px` : `${img.width * 0.0045}px` : `${img.width * 0.0026}px`}`,left: `-${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,transform: 'translateX(-100%)',paddingRight: `${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,borderRight: `solid ${img.width * 0.0013}px #ccc`,aspectRatio: marks[img.mark].ratio}" ></el-image>
+            <p :style="{fontWeight: 'bold',fontSize: img.width > img.height ? '.84em' : '.78em',lineHeight: img.width > img.height ? '2.15em' : '2em'}">{{ typeof(dialogs.json.subTitle) == 'number' ? dialogs.customs[dialogs.json.subTitle] : img[dialogs.json.subTitle] }}</p>
+            <p style="font-size: .67em;color: #7f7f7f;">{{ typeof(dialogs.json.mainSubTitle) == 'number' ? dialogs.customs[dialogs.json.mainSubTitle] : img[dialogs.json.mainSubTitle] || (typeof(dialogs.json.subMainTitle) == 'number' && dialogs.customs[dialogs.json.subMainTitle] || img[dialogs.json.subMainTitle]) }}</p>
           </div>
         </div>
       </swiper-slide>
@@ -392,7 +443,7 @@ const IconChange = (uploadFileRaw) => {
   <el-dialog v-model="dialogs.dialog" title="自定义" @close="dialogs.close" fullscreen>
     <el-form :model="dialogs.json" label-width="auto" label-position="right" v-loading="dialogs.loading">
       <el-form-item label="ICON">
-        <el-select v-model="dialogs.json.mark" placeholder="Select" size="large" :disabled="dialogs.disabled">
+        <el-select v-model="imgs[dialogs.index].mark" placeholder="Select" size="large" :disabled="dialogs.disabled">
           <el-option v-for="(item,index) of marks" :key="item.index" :label="item.name" :value="index" />
         </el-select>
         <el-upload :before-upload="IconChange" :show-file-list="false">
@@ -402,22 +453,36 @@ const IconChange = (uploadFileRaw) => {
         </el-upload>
       </el-form-item>
       <el-form-item label="主标题">
-        <el-input size="large" v-model="dialogs.json.model" placeholder="左上角" :disabled="dialogs.disabled" />
+        <el-select v-model="dialogs.json.mainTitle" placeholder="左上角" size="large" :disabled="dialogs.disabled" clearable>
+          <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
+          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
+        </el-select>
+        <!-- <el-input size="large" v-model="dialogs.json.model" placeholder="左上角" :disabled="dialogs.disabled" /> -->
       </el-form-item>
       <el-form-item label="副主标题">
-        <el-input size="large" v-model="dialogs.json.focal" placeholder="右上角" :disabled="dialogs.disabled" />
+        <el-select v-model="dialogs.json.subTitle" placeholder="右上角" size="large" :disabled="dialogs.disabled" clearable>
+          <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
+          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
+        </el-select>
+        <!-- <el-input size="large" v-model="dialogs.json.focal" placeholder="右上角" :disabled="dialogs.disabled" /> -->
       </el-form-item>
       <el-form-item label="次标题">
-        <el-input size="large" v-model="dialogs.json.date" placeholder="左下角" :disabled="dialogs.disabled" />
+        <el-select v-model="dialogs.json.subMainTitle" placeholder="左下角" size="large" :disabled="dialogs.disabled" clearable>
+          <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
+          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
+        </el-select>
+        <!-- <el-input size="large" v-model="dialogs.json.date" placeholder="左下角" :disabled="dialogs.disabled" /> -->
       </el-form-item>
       <el-form-item label="副次标题">
-        <el-input size="large" v-model="dialogs.json.itude" placeholder="右下角" :disabled="dialogs.disabled" />
-      </el-form-item>
-      <el-form-item label="参数预览">
-        <el-input size="large" v-model="dialogs.outputs" placeholder="请选择参数" :disabled="dialogs.disabled" />
-        <el-select v-model="dialogs.outputs" placeholder="Select" size="large" style="margin-left: 1rem;" :disabled="dialogs.disabled">
-          <el-option v-for="(item,index) of dialogs.json.output" :key="index" :label="index" :value="item" />
+        <el-select v-model="dialogs.json.mainSubTitle" placeholder="右下角" size="large" :disabled="dialogs.disabled" clearable>
+          <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
+          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
         </el-select>
+        <!-- <el-input size="large" v-model="dialogs.json.itude" placeholder="右下角" :disabled="dialogs.disabled" /> -->
+      </el-form-item>
+      <el-form-item label="参数添加">
+        <el-input size="large" v-model="dialogs.input" placeholder="请输入参数" :disabled="dialogs.disabled" />
+        <el-button size="large" type="primary" @click="dialogs.addCustom" style="margin-left: 1rem;" :disabled="dialogs.disabled">添加</el-button>
       </el-form-item>
       <el-form-item label="身份码">
         <el-input size="large" v-model="dialogs.only" maxlength="6" placeholder="六位身份码" @input="dialogs.onlyInput" />
