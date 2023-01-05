@@ -108,7 +108,7 @@ const marks = ref([...lsMarks,...[
   },
   {
     name: '哈苏',
-    val: 'hasu',
+    val: 'hasselblad',
     ratio: '1 / 1',
   },
   {
@@ -235,7 +235,9 @@ const ImgChange = async (uploadFileRaw) => {
       })
       return false
     }
-    let mark = (output.Make && marks.value.findIndex(item => output.Make.toLowerCase().search(item.val) >= 0 ? true : false)) || 0
+    let markIndex = output.Make && marks.value.findIndex(item => output.Make.toLowerCase().search(item.val) >= 0 ? true : false)
+    // console.log(markIndex)
+    let mark = markIndex >= 0 ? markIndex : 0
     // log.value = output
     createHW.onload = () => {
       let obj = {
@@ -267,7 +269,7 @@ const ImgChange = async (uploadFileRaw) => {
           enumerable: true,
         },
         'focal': {
-          value: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${output?.FocalLengthIn35mmFormat || output?.FocalLength || false}mm f/${ output?.FNumber || false } ${output.ExposureTime ? output.ExposureTime >= 1 ? `${output.ExposureTime}"` : `1/${parseInt(1 / output.ExposureTime)}` : false} ISO${ output?.ISO || false }` : 'ImmersMark',
+          value: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${output?.FocalLengthIn35mmFormat + 'mm' || output?.FocalLength + 'mm' || ''} ${ 'f/' + output?.FNumber || '' } ${output.ExposureTime ? output.ExposureTime >= 1 ? `${output.ExposureTime}"` : `1/${parseInt(1 / output.ExposureTime)}` : '' } ${ 'ISO' + output?.ISO || '' }` : 'ImmersMark',
           enumerable: true,
         },
         'itude': {
@@ -508,7 +510,7 @@ const IconChange = async (uploadFileRaw) => {
 <style>
   @import "https://font.sec.miui.com/font/css?family=MiSans:300,450,500,650:Chinese_Simplify,Latin&display=swap";
   @import "https://font.sec.miui.com/font/css?family=Mi_Lan_Pro:200,300,400,500,600,700,800:Chinese_Simplify,Latin&display=swap";
-  
+
   body{
     margin: 0;
   }
