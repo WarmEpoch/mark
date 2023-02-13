@@ -3,6 +3,7 @@
         <el-tab-pane label="小米徕卡" name="Mi"></el-tab-pane>
         <el-tab-pane label="极简单一" name="Frame"></el-tab-pane>
         <el-tab-pane label="边框简字" name="Jamb"></el-tab-pane>
+        <el-tab-pane label="边框标志" name="Flag"></el-tab-pane>
     </el-tabs>
 </template>
 
@@ -14,7 +15,7 @@ const router = useRouter()
 const props = defineProps(['id'])
 const menuId = props.id
 const handleClick = (tab) => {
-    tab.props.name === 'Home' ? router.replace({ path: '/' }) : router.replace({ path: tab.props.name })
+    tab.props.name === 'Mi' ? router.replace({ path: '/' }) : router.replace({ path: tab.props.name })
 }
 </script>
 

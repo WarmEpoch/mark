@@ -21,6 +21,11 @@ const routes = [
     name: 'Jamb',
     component: () => import('../views/Jamb.vue'),
   },
+  {
+    path: '/Flag',
+    name: 'Flag',
+    component: () => import('../views/Flag.vue'),
+  },
 ]
 
 const router = createRouter({

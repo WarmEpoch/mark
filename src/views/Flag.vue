@@ -330,15 +330,19 @@ const Create = async () =>{
     toImg.value.append(div)
 
     let canvas = document.createElement('canvas')
-    canvas.width = imgs.value[index].width
-    canvas.height = imgs.value[index].height + div.clientHeight
+    let jamb = imgs.value[index].width * 0.05
+    canvas.width = imgs.value[index].width + jamb + jamb
+    canvas.height = jamb + imgs.value[index].height + div.clientHeight
     toImg.value.append(canvas)
     let cancon = canvas.getContext('2d')
+    cancon.rect(0,0,canvas.width,canvas.height)
+    cancon.fillStyle = "#fff"
+    cancon.fill()
     // let img = new Image()
     // img.src = imgs.value[index].src
     // img.onload =  () => {
       // console.log(el.querySelector('img'))
-      cancon.drawImage(el.querySelector('img'),0,0)
+      cancon.drawImage(el.querySelector('img'),jamb,jamb)
       axios({
         method: 'post',
         url: '//api.immers.icu/api/Mark/creates',
@@ -355,7 +359,7 @@ const Create = async () =>{
         let mark = new Image()
         mark.src = dataUrl
         mark.onload = () => {
-          cancon.drawImage(mark,0,imgs.value[index].height)
+          cancon.drawImage(mark,jamb,imgs.value[index].height + jamb)
           // canvas.toBlob(function(blob) {
           //   creates.value.unshift(URL.createObjectURL(blob))
           //   URL.revokeObjectURL(blob)
@@ -412,30 +416,19 @@ const IconChange = async (uploadFileRaw) => {
         </template>
       </el-upload>
     </template>
-    <Menu id="Mi" />
+    <Menu id="Flag" />
   </el-card>
   <div style="padding: 1rem;background: #f5f5f5;">
     <swiper ref="swipers">
       <swiper-slide v-for="(img, index) of imgs" :key="index">
         <el-popconfirm title="删除此张照片?" confirm-button-text="是的" cancel-button-text="取消" @confirm="dialogs.delete(index)">
           <template #reference>
-            <el-image :src="img.src" />
+            <el-image :src="img.src" :style="{padding: `${swipers.$el.clientWidth * 0.05}px`,paddingBottom: '0',background: '#fff'}"  />
           </template>
         </el-popconfirm>
-        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',justifyContent: 'space-between',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
-          <div style="display: flex;justify-content: space-between;flex-flow: column wrap;">
-            <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}</p>
-            <p style="font-size: .69em;color: #818185;">{{ ((dialogs.json.mainSubTitle != '' && img[dialogs.json.mainSubTitle]) || typeof(dialogs.json.mainSubTitle) == 'number') ? typeof(dialogs.json.subMainTitle) == 'number' ? dialogs.customs[dialogs.json.subMainTitle] : img[dialogs.json.subMainTitle] : '' }}</p>
-          </div>
-                                                                            <!-- //mainTitle 左上角
-                                                                            //subTitle 右上角
-                                                                            //subMainTitle 左下角
-                                                                            //mainSubTitle 右下角 -->
-          <div style="display: flex;flex-flow: column wrap;justify-content: space-between;position: relative;">
-            <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{position: 'absolute',top: `${img[dialogs.json.subMainTitle] || img[dialogs.json.mainSubTitle] ? img.width > img.height ? `${img.width * 0.0103}px` : `${img.width * 0.014}px` : `${img.width * 0.0026}px`}`,bottom: `${img[dialogs.json.subMainTitle] || img[dialogs.json.mainSubTitle] ? img.width > img.height ? `${img.width * 0.0028}px` : `${img.width * 0.0045}px` : `${img.width * 0.0026}px`}`,left: `-${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,transform: 'translateX(-100%)',paddingRight: `${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,borderRight: `solid ${img.width * 0.0013}px #ccc`,aspectRatio: marks[img.mark].ratio}" ></el-image>
-            <p :style="{fontWeight: 'bold',fontSize: img.width > img.height ? '.84em' : '.78em',lineHeight: img.width > img.height ? '2.15em' : '2em'}">{{ typeof(dialogs.json.subTitle) == 'number' ? dialogs.customs[dialogs.json.subTitle] : img[dialogs.json.subTitle] }}</p>
-            <p style="font-size: .67em;color: #7f7f7f;">{{ typeof(dialogs.json.mainSubTitle) == 'number' ? dialogs.customs[dialogs.json.mainSubTitle] : img[dialogs.json.mainSubTitle] || (typeof(dialogs.json.subMainTitle) == 'number' && dialogs.customs[dialogs.json.subMainTitle] || img[dialogs.json.subMainTitle]) }}</p>
-          </div>
+        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',flexFlow: 'column',alignItems: 'center',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
+          <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{aspectRatio: marks[img.mark].ratio}" ></el-image>
+          <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}丨{{ typeof(dialogs.json.subTitle) == 'number' ? dialogs.customs[dialogs.json.subTitle] : img[dialogs.json.subTitle] }}</p>
         </div>
       </swiper-slide>
       <swiper-slide v-if="!imgs.length">
@@ -468,20 +461,6 @@ const IconChange = async (uploadFileRaw) => {
           <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
         </el-select>
         <!-- <el-input size="large" v-model="dialogs.json.focal" placeholder="右上角" :disabled="dialogs.disabled" /> -->
-      </el-form-item>
-      <el-form-item label="次标题">
-        <el-select v-model="dialogs.json.subMainTitle" placeholder="左下角" size="large" :disabled="dialogs.disabled" clearable>
-          <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
-          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
-        </el-select>
-        <!-- <el-input size="large" v-model="dialogs.json.date" placeholder="左下角" :disabled="dialogs.disabled" /> -->
-      </el-form-item>
-      <el-form-item label="副次标题">
-        <el-select v-model="dialogs.json.mainSubTitle" placeholder="右下角" size="large" :disabled="dialogs.disabled" clearable>
-          <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
-          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
-        </el-select>
-        <!-- <el-input size="large" v-model="dialogs.json.itude" placeholder="右下角" :disabled="dialogs.disabled" /> -->
       </el-form-item>
       <el-form-item label="参数添加">
         <el-input size="large" v-model="dialogs.input" placeholder="请输入参数" :disabled="dialogs.disabled" />

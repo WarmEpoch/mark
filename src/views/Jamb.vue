@@ -248,7 +248,7 @@ const Create = async () =>{
         method: 'post',
         url: '//api.immers.icu/api/Mark/creates',
         data: {
-          only: localStorage.getItem('ONLY'),
+          only: localStorage.getItem('only'),
           base: canvas.toDataURL("image/jpeg", 0.1)
         }
       })
