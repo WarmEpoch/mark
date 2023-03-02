@@ -35,7 +35,7 @@ const dialogs = ref({
     dialogs.value.dialog = false
   },
   fetch: () => {
-    ElMessage.error('3天/2元 7天/4元 15天/6元 30天/8元 永久/68元')
+    ElMessage.error('3天/2元 7天/4元 15天/7元 30天/9元 永久/68元')
   },
   show: async index => {
     dialogs.value.index = index
@@ -250,23 +250,18 @@ const Create = async () =>{
       })
       
     // }
-    
-    await domtoimage.toJpeg(div,{quality: 1}).then(dataUrl => {
-        div.remove()
+    let dataUrl = await domtoimage.toJpeg(div,{quality: 1})
+    div.remove()
+    let allUrl = await new Promise((resolve, reject) => {
         let mark = new Image()
         mark.src = dataUrl
         mark.onload = () => {
           cancon.drawImage(mark,0,imgs.value[index].height)
-          // canvas.toBlob(function(blob) {
-          //   creates.value.unshift(URL.createObjectURL(blob))
-          //   URL.revokeObjectURL(blob)
-          //   canvas.remove()
-          // }, "image/jpeg", 1.0)
-          creates.value.unshift(canvas.toDataURL("image/jpeg", 1.0))
-          canvas.remove()
+          resolve(canvas.toDataURL("image/jpeg", 1.0))
         }
     })
-
+    canvas.remove()
+    creates.value.unshift(allUrl)
 
     if(index >= document.querySelectorAll('.swiper-slide').length - 1){
       load.close()
@@ -316,7 +311,7 @@ const PreViewClose = () => {
   <el-dialog v-model="dialogs.dialog" title="自定义" @close="dialogs.close" fullscreen>
     <el-form :model="dialogs.json" label-width="auto" label-position="right" v-loading="dialogs.loading">
       <el-form-item label="主标题">
-        <el-select v-model="dialogs.json.mainTitle" placeholder="左上角" size="large" :disabled="dialogs.disabled" clearable>
+        <el-select v-model="dialogs.json.mainTitle" placeholder="默认机型" size="large" :disabled="dialogs.disabled" clearable>
           <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
           <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
         </el-select>

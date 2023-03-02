@@ -9,6 +9,7 @@ import domtoimage from 'dom-to-image'
 import axios from 'axios'
 import Menu from '../components/menu.vue'
 import Tips from '../components/tips.vue'
+import glMarks from '../export/marks'
 
 import 'swiper/css'
 
@@ -39,7 +40,7 @@ const dialogs = ref({
     dialogs.value.dialog = false
   },
   fetch: () => {
-    ElMessage.error('3天/2元 7天/4元 15天/6元 30天/8元 永久/68元')
+    ElMessage.error('3天/2元 7天/4元 15天/7元 30天/9元 永久/68元')
   },
   show: async index => {
     dialogs.value.index = index
@@ -102,93 +103,7 @@ const dialogs = ref({
   }
 })
 const lsMarks = JSON.parse(localStorage.getItem('marks')) || []
-const marks = ref([...lsMarks,...[
-  {
-    name: '徕卡',
-    val: 'leica',
-    ratio: '1 / 1',
-  },
-  {
-    name: '哈苏',
-    val: 'hasselblad',
-    ratio: '1 / 1',
-  },
-  {
-    name: '阿莱',
-    val: 'arri',
-    ratio: '3 / 2',
-  },
-  {
-    name: '蔡司',
-    val: 'zeiss',
-    ratio: '1 / 1',
-  },
-  {
-    name: '富士',
-    val: 'fujifilm',
-    ratio: '3 / 2',
-  },
-  {
-    name: '索尼',
-    val: 'sony',
-    ratio: '3 / 2',
-  },
-  {
-    name: '佳能',
-    val: 'canon',
-    ratio: '3 / 2',
-  },
-  {
-    name: '尼康',
-    val: 'nikon',
-    ratio: '3 / 2',
-  },
-  {
-    name: 'FotorGear',
-    val: 'fotorgear',
-    ratio: '1 / 1',
-  },
-  {
-    name: 'SIGMA',
-    val: 'sigma',
-    ratio: '3 / 2',
-  },
-  {
-    name: '宾得',
-    val: 'pentax',
-    ratio: '3 / 2',
-  },
-  {
-    name: '奥林巴斯',
-    val: 'olympus',
-    ratio: '3 / 2',
-  },
-  {
-    name: 'TAMRON',
-    val: 'tamron',
-    ratio: '3 / 2',
-  },
-  {
-    name: 'RICOH',
-    val: 'ricoh',
-    ratio: '3 / 2',
-  },
-  {
-    name: '苹果',
-    val: 'apple',
-    ratio: '1 / 1',
-  },
-  {
-    name: '大疆',
-    val: 'dji',
-    ratio: '1 / 1',
-  },
-  {
-    name: 'Lumix',
-    val: 'lumix',
-    ratio: '3 / 2',
-  },
-]])
+const marks = ref([...lsMarks,...glMarks])
 
 
 const ImgChange = async (uploadFileRaw) => {
@@ -349,23 +264,19 @@ const Create = async () =>{
       })
       
     // }
-    
-    await domtoimage.toJpeg(div,{quality: 1}).then(dataUrl => {
-        div.remove()
+
+    let dataUrl = await domtoimage.toJpeg(div,{quality: 1})
+    div.remove()
+    let allUrl = await new Promise((resolve, reject) => {
         let mark = new Image()
         mark.src = dataUrl
         mark.onload = () => {
           cancon.drawImage(mark,0,imgs.value[index].height)
-          // canvas.toBlob(function(blob) {
-          //   creates.value.unshift(URL.createObjectURL(blob))
-          //   URL.revokeObjectURL(blob)
-          //   canvas.remove()
-          // }, "image/jpeg", 1.0)
-          creates.value.unshift(canvas.toDataURL("image/jpeg", 1.0))
-          canvas.remove()
+          resolve(canvas.toDataURL("image/jpeg", 1.0))
         }
     })
-
+    canvas.remove()
+    creates.value.unshift(allUrl)
 
     if(index >= document.querySelectorAll('.swiper-slide').length - 1){
       load.close()

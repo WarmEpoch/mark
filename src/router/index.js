@@ -26,6 +26,11 @@ const routes = [
     name: 'Flag',
     component: () => import('../views/Flag.vue'),
   },
+  {
+    path: '/Gins',
+    name: 'Gins',
+    component: () => import('../views/Gins.vue'),
+  },
 ]
 
 const router = createRouter({

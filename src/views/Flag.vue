@@ -9,6 +9,7 @@ import domtoimage from 'dom-to-image'
 import axios from 'axios'
 import Menu from '../components/menu.vue'
 import Tips from '../components/tips.vue'
+import glMarks from '../export/marks'
 
 import 'swiper/css'
 
@@ -39,7 +40,7 @@ const dialogs = ref({
     dialogs.value.dialog = false
   },
   fetch: () => {
-    ElMessage.error('3天/2元 7天/4元 15天/6元 30天/8元 永久/68元')
+    ElMessage.error('3天/2元 7天/4元 15天/7元 30天/9元 永久/68元')
   },
   show: async index => {
     dialogs.value.index = index
@@ -102,93 +103,7 @@ const dialogs = ref({
   }
 })
 const lsMarks = JSON.parse(localStorage.getItem('marks')) || []
-const marks = ref([...lsMarks,...[
-  {
-    name: '徕卡',
-    val: 'leica',
-    ratio: '1 / 1',
-  },
-  {
-    name: '哈苏',
-    val: 'hasselblad',
-    ratio: '1 / 1',
-  },
-  {
-    name: '阿莱',
-    val: 'arri',
-    ratio: '3 / 2',
-  },
-  {
-    name: '蔡司',
-    val: 'zeiss',
-    ratio: '1 / 1',
-  },
-  {
-    name: '富士',
-    val: 'fujifilm',
-    ratio: '3 / 2',
-  },
-  {
-    name: '索尼',
-    val: 'sony',
-    ratio: '3 / 2',
-  },
-  {
-    name: '佳能',
-    val: 'canon',
-    ratio: '3 / 2',
-  },
-  {
-    name: '尼康',
-    val: 'nikon',
-    ratio: '3 / 2',
-  },
-  {
-    name: 'FotorGear',
-    val: 'fotorgear',
-    ratio: '1 / 1',
-  },
-  {
-    name: 'SIGMA',
-    val: 'sigma',
-    ratio: '3 / 2',
-  },
-  {
-    name: '宾得',
-    val: 'pentax',
-    ratio: '3 / 2',
-  },
-  {
-    name: '奥林巴斯',
-    val: 'olympus',
-    ratio: '3 / 2',
-  },
-  {
-    name: 'TAMRON',
-    val: 'tamron',
-    ratio: '3 / 2',
-  },
-  {
-    name: 'RICOH',
-    val: 'ricoh',
-    ratio: '3 / 2',
-  },
-  {
-    name: '苹果',
-    val: 'apple',
-    ratio: '1 / 1',
-  },
-  {
-    name: '大疆',
-    val: 'dji',
-    ratio: '1 / 1',
-  },
-  {
-    name: 'Lumix',
-    val: 'lumix',
-    ratio: '3 / 2',
-  },
-]])
+const marks = ref([...lsMarks,...glMarks])
 
 
 const ImgChange = async (uploadFileRaw) => {
@@ -292,7 +207,7 @@ const ImgChange = async (uploadFileRaw) => {
   load.close()
 
 
-  return false
+  return true
 }
 
 const format = (Date) => {
@@ -352,23 +267,18 @@ const Create = async () =>{
         }
       })
       
-    // }
-    
-    await domtoimage.toJpeg(div,{quality: 1}).then(dataUrl => {
-        div.remove()
+    let dataUrl = await domtoimage.toJpeg(div,{quality: 1})
+    div.remove()
+    let allUrl = await new Promise((resolve, reject) => {
         let mark = new Image()
         mark.src = dataUrl
         mark.onload = () => {
           cancon.drawImage(mark,jamb,imgs.value[index].height + jamb)
-          // canvas.toBlob(function(blob) {
-          //   creates.value.unshift(URL.createObjectURL(blob))
-          //   URL.revokeObjectURL(blob)
-          //   canvas.remove()
-          // }, "image/jpeg", 1.0)
-          creates.value.unshift(canvas.toDataURL("image/jpeg", 1.0))
-          canvas.remove()
+          resolve(canvas.toDataURL("image/jpeg", 1.0))
         }
     })
+    canvas.remove()
+    creates.value.unshift(allUrl)
 
 
     if(index >= document.querySelectorAll('.swiper-slide').length - 1){
@@ -427,8 +337,8 @@ const IconChange = async (uploadFileRaw) => {
           </template>
         </el-popconfirm>
         <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',flexFlow: 'column',alignItems: 'center',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
-          <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{aspectRatio: marks[img.mark].ratio}" ></el-image>
-          <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}丨{{ typeof(dialogs.json.subTitle) == 'number' ? dialogs.customs[dialogs.json.subTitle] : img[dialogs.json.subTitle] }}</p>
+          <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{aspectRatio: marks[img.mark].ratio,width: '16%'}" ></el-image>
+          <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '2.1em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}{{dialogs.json.subTitle && dialogs.json.mainTitle ? ' | ' : ''}}{{ typeof(dialogs.json.subTitle) == 'number' ? dialogs.customs[dialogs.json.subTitle] : img[dialogs.json.subTitle] }}</p>
         </div>
       </swiper-slide>
       <swiper-slide v-if="!imgs.length">
@@ -449,14 +359,14 @@ const IconChange = async (uploadFileRaw) => {
         </el-upload>
       </el-form-item>
       <el-form-item label="主标题">
-        <el-select v-model="dialogs.json.mainTitle" placeholder="左上角" size="large" :disabled="dialogs.disabled" clearable>
+        <el-select v-model="dialogs.json.mainTitle" placeholder="默认机型" size="large" :disabled="dialogs.disabled" clearable>
           <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
           <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
         </el-select>
         <!-- <el-input size="large" v-model="dialogs.json.model" placeholder="左上角" :disabled="dialogs.disabled" /> -->
       </el-form-item>
       <el-form-item label="副主标题">
-        <el-select v-model="dialogs.json.subTitle" placeholder="右上角" size="large" :disabled="dialogs.disabled" clearable>
+        <el-select v-model="dialogs.json.subTitle" placeholder="默认参数" size="large" :disabled="dialogs.disabled" clearable>
           <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
           <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
         </el-select>

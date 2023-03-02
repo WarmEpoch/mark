@@ -4,6 +4,7 @@
         <el-tab-pane label="极简单一" name="Frame"></el-tab-pane>
         <el-tab-pane label="边框简字" name="Jamb"></el-tab-pane>
         <el-tab-pane label="边框标志" name="Flag"></el-tab-pane>
+        <el-tab-pane label="边框简参" name="Gins"></el-tab-pane>
     </el-tabs>
 </template>
 

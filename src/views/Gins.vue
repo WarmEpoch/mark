@@ -27,6 +27,8 @@ const dialogs = ref({
   input: '',
   json: {
     mainTitle: 'Model',
+    mainSubTitle: 'Make',
+    subTitle: 'focal',
   },
   customs: JSON.parse(localStorage.getItem('customs')) || [],
   loading: true,
@@ -164,7 +166,7 @@ const ImgChange = async (uploadFileRaw) => {
           value: createHW.width,
         },
         'Model': {
-          value: output.Model || 'Immers',
+          value: output.Model || 'ImmersModel',
           enumerable: true,
         },
         'date': {
@@ -181,6 +183,10 @@ const ImgChange = async (uploadFileRaw) => {
         },
         'lens': {
           value: output.LensModel,
+          enumerable: true,
+        },
+        'Make': {
+          value: output.Make || 'Immers',
           enumerable: true,
         }
       })
@@ -295,7 +301,7 @@ const PreViewClose = () => {
         </template>
       </el-upload>
     </template>
-    <Menu id="Jamb" />
+    <Menu id="Gins" />
   </el-card>
   <div style="padding: 1rem;background: #f5f5f5;">
     <swiper ref="swipers">
@@ -305,8 +311,9 @@ const PreViewClose = () => {
             <el-image :src="img.src" :style="{padding: `${swipers.$el.clientWidth * 0.05}px`,paddingBottom: '0',background: '#fff'}" />
           </template>
         </el-popconfirm>
-        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',justifyContent: 'center',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
-          <p :style="{fontWeight: '500',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}</p>
+        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',alignItems: 'center',flexFlow: 'column',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
+          <p :style="{fontWeight: '500',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">Shot on <span :style="{fontSize:  img.width > img.height ? '1.1em' : '1.08em',fontWeight: 'bolder'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}</span> {{ typeof(dialogs.json.mainSubTitle) == 'number' ? dialogs.customs[dialogs.json.mainSubTitle] : img[dialogs.json.mainSubTitle] }}</p>
+          <p :style="{fontWeight: '500',fontSize:  img.width > img.height ? '.76em' : '.73em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ typeof(dialogs.json.subTitle) == 'number' ? dialogs.customs[dialogs.json.subTitle] : img[dialogs.json.subTitle] }}</p>
         </div>
       </swiper-slide>
       <swiper-slide v-if="!imgs.length">
@@ -316,12 +323,24 @@ const PreViewClose = () => {
   </div>
   <el-dialog v-model="dialogs.dialog" title="自定义" @close="dialogs.close" fullscreen>
     <el-form :model="dialogs.json" label-width="auto" label-position="right" v-loading="dialogs.loading">
-      <el-form-item label="主标题">
-        <el-select v-model="dialogs.json.mainTitle" placeholder="默认机型" size="large" :disabled="dialogs.disabled" clearable>
+      <el-form-item label="机型">
+        <el-select v-model="dialogs.json.mainTitle" placeholder="机型" size="large" :disabled="dialogs.disabled" clearable>
           <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
           <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
         </el-select>
         <!-- <el-input size="large" v-model="dialogs.json.model" placeholder="左上角" :disabled="dialogs.disabled" /> -->
+      </el-form-item>
+      <el-form-item label="制造商">
+        <el-select v-model="dialogs.json.mainSubTitle" placeholder="制造商" size="large" :disabled="dialogs.disabled" clearable>
+          <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
+          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="参数">
+        <el-select v-model="dialogs.json.subTitle" placeholder="参数" size="large" :disabled="dialogs.disabled" clearable>
+          <el-option v-for="(res,index) of imgs[dialogs.index]" :key="index" :label="res" :value="index" />
+          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
+        </el-select>
       </el-form-item>
       <el-form-item label="参数添加">
         <el-input size="large" v-model="dialogs.input" placeholder="请输入参数" :disabled="dialogs.disabled" />
