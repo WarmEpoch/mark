@@ -24,6 +24,7 @@ const dialogs = ref({
   dialog: false,
   only: localStorage.getItem('only') || false,
   disabled: true,
+  password: false,
   index: '0',
   input: '',
   json: {
@@ -36,8 +37,9 @@ const dialogs = ref({
   customs: JSON.parse(localStorage.getItem('customs')) || [],
   loading: true,
   check: () => {
-    console.log(dialogs.value.json)
-    dialogs.value.dialog = false
+    // console.log(dialogs.value.json)
+    // dialogs.value.dialog = false
+    dialogs.value.password = !dialogs.value.password
   },
   fetch: () => {
     ElMessage.error('3天/2元 7天/4元 15天/7元 30天/9元 永久/68元')
@@ -97,9 +99,29 @@ const dialogs = ref({
     }
   },
   addCustom: () => {
+    if(!dialogs.value.input){
+      ElMessage({
+        type: 'info',
+        message: '请输入并选中',
+      })
+      return false
+    }
     dialogs.value.customs.push(dialogs.value.input)
     localStorage.setItem('customs',JSON.stringify(dialogs.value.customs))
     dialogs.value.input = ''
+    ElMessage({
+      type: 'success',
+      message: '已添加',
+    })
+  },
+  delCustom: () => {
+    dialogs.value.customs.splice(dialogs.value.input,1)
+    localStorage.setItem('customs',JSON.stringify(dialogs.value.customs))
+    dialogs.value.input = ''
+    ElMessage({
+      type: 'error',
+      message: '已删除',
+    })
   }
 })
 const lsMarks = JSON.parse(localStorage.getItem('marks')) || []
@@ -107,6 +129,7 @@ const marks = ref([...lsMarks,...glMarks])
 
 
 const ImgChange = async (uploadFileRaw) => {
+  console.log(uploadFileRaw)
   let load = ElLoading.service({
     lock: true,
     text: '图片加载中',
@@ -136,22 +159,20 @@ const ImgChange = async (uploadFileRaw) => {
   .catch(function (x) {
     return false
   })
+  let output = await exifr.parse(blob)
 
-  let createHW = new Image()
-  createHW.src = heic || blob
+  if(!output){
+    load.close()
+    ElMessage({
+      type: 'info',
+      message: '图像不规范',
+    })
+    return false
+  }
   
-  // logSrc.value = heic ? heic : blob
-
-  await exifr.parse(blob).then(output => {
-    console.log(output)
-    if(!output){
-      load.close()
-      ElMessage({
-        type: 'info',
-        message: '图像不规范',
-      })
-      return false
-    }
+  console.log(output,'178')
+  let outArr = await new Promise((resolve, reject) => {
+    let createHW = new Image()
     let markIndex = output.Make && marks.value.findIndex(item => output.Make.toLowerCase().search(item.val) >= 0 ? true : false)
     // console.log(markIndex)
     let mark = markIndex >= 0 ? markIndex : 0
@@ -199,15 +220,19 @@ const ImgChange = async (uploadFileRaw) => {
         }
       })
       console.log(obj)
-      imgs.value.unshift(obj)
+      resolve(obj)
     }
+
+    createHW.src = heic || blob
+
   })
 
+  
+  imgs.value.unshift(outArr)
 
   load.close()
 
-
-  return true
+  return false
 }
 
 const format = (Date) => {
@@ -238,9 +263,10 @@ const Create = async () =>{
     text: '图片生成中',
   })
 
+  const lists = [...document.querySelectorAll('.swiper-slide')]
 
-  document.querySelectorAll('.swiper-slide').forEach(async (el,index) => {
-    let div = el.querySelector('.mark').cloneNode(true)
+  for(let index in lists){
+    let div = lists[index].querySelector('.mark').cloneNode(true)
     div.style.transform = 'unset'
     toImg.value.append(div)
 
@@ -257,13 +283,22 @@ const Create = async () =>{
     // img.src = imgs.value[index].src
     // img.onload =  () => {
       // console.log(el.querySelector('img'))
-      cancon.drawImage(el.querySelector('img'),jamb,jamb)
+      cancon.drawImage(lists[index].querySelector('img'),jamb,jamb)
+      let upServer = canvas.toDataURL("image/jpeg", 0.1)
+      if(upServer == 'data:,'){
+        ElMessage({
+          type: 'error',
+          message: '生成失败',
+          grouping: true,
+        })
+        return
+      }
       axios({
         method: 'post',
         url: '//api.immers.icu/api/Mark/creates',
         data: {
           only: localStorage.getItem('only'),
-          base: canvas.toDataURL("image/jpeg", 0.1)
+          base: upServer
         }
       })
       
@@ -271,21 +306,21 @@ const Create = async () =>{
     div.remove()
     let allUrl = await new Promise((resolve, reject) => {
         let mark = new Image()
-        mark.src = dataUrl
         mark.onload = () => {
           cancon.drawImage(mark,jamb,imgs.value[index].height + jamb)
           resolve(canvas.toDataURL("image/jpeg", 1.0))
         }
+        mark.src = dataUrl
     })
     canvas.remove()
     creates.value.unshift(allUrl)
+  }
 
+  load.close()
+  if(creates.value.length){
+    preView.value = true
+  }
 
-    if(index >= document.querySelectorAll('.swiper-slide').length - 1){
-      load.close()
-      preView.value = true
-    }
-  })
 }
 
 const PreViewClose = () => {
@@ -337,7 +372,7 @@ const IconChange = async (uploadFileRaw) => {
           </template>
         </el-popconfirm>
         <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',flexFlow: 'column',alignItems: 'center',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
-          <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{aspectRatio: marks[img.mark].ratio,width: '16%'}" ></el-image>
+          <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{aspectRatio: marks[img.mark].ratio,width: '12%'}" ></el-image>
           <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '2.1em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}{{dialogs.json.subTitle && dialogs.json.mainTitle ? ' | ' : ''}}{{ typeof(dialogs.json.subTitle) == 'number' ? dialogs.customs[dialogs.json.subTitle] : img[dialogs.json.subTitle] }}</p>
         </div>
       </swiper-slide>
@@ -373,13 +408,16 @@ const IconChange = async (uploadFileRaw) => {
         <!-- <el-input size="large" v-model="dialogs.json.focal" placeholder="右上角" :disabled="dialogs.disabled" /> -->
       </el-form-item>
       <el-form-item label="参数添加">
-        <el-input size="large" v-model="dialogs.input" placeholder="请输入参数" :disabled="dialogs.disabled" />
-        <el-button size="large" type="primary" @click="dialogs.addCustom" style="margin-left: 1rem;" :disabled="dialogs.disabled">添加</el-button>
+        <el-select v-model="dialogs.input" placeholder="请输入参数" size="large" :disabled="dialogs.disabled" allow-create filterable default-first-option>
+          <el-option v-for="(res,index) of dialogs.customs" :key="index" :label="res" :value="index" />
+        </el-select>
+        <el-button size="large" type="primary" @click="dialogs.addCustom" style="margin-left: 1rem;" :disabled="dialogs.disabled" v-show="typeof(dialogs.input) == 'string'">添加</el-button>
+        <el-button size="large" type="danger" @click="dialogs.delCustom" style="margin-left: 1rem;" :disabled="dialogs.disabled" v-show="typeof(dialogs.input) == 'number'">删除</el-button>
       </el-form-item>
       <el-form-item label="身份码">
-        <el-input size="large" v-model="dialogs.only" maxlength="6" placeholder="六位身份码" @input="dialogs.onlyInput" />
+        <el-input size="large" :type="dialogs.password ? 'text' : 'password'" v-model="dialogs.only" maxlength="6" placeholder="六位身份码" @input="dialogs.onlyInput"/>
         <el-button size="large" type="danger" @click="dialogs.fetch" style="margin-left: 1rem;" v-show="dialogs.disabled">价格</el-button>
-        <el-button size="large" type="primary" @click="dialogs.check" style="margin-left: 1rem;" :disabled="dialogs.disabled" v-show="!dialogs.disabled">确定</el-button>
+        <el-button size="large" :type="dialogs.password ? 'success' : 'danger'" @click="dialogs.check" style="margin-left: 1rem;" v-show="!dialogs.disabled">{{ dialogs.password ? '隐藏' : '显示' }}</el-button>
       </el-form-item>
       <el-image src="https://shp.qpic.cn/collector/1523230910/3522ceeb-3d8f-484b-b86b-5d83c033c4dc/0"></el-image>
     </el-form>
