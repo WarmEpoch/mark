@@ -1,28 +1,29 @@
 <script setup>
 import { ref } from 'vue'
-import { InfoFilled } from '@element-plus/icons-vue'
 import { ElPopconfirm } from 'element-plus'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import exifr from 'exifr'
-import heic2any from 'heic2any'
 import domtoimage from 'dom-to-image'
 import axios from 'axios'
 import Menu from '../components/menu.vue'
 import Tips from '../components/tips.vue'
 import glMarks from '../export/marks'
+import { img } from '../export/img'
+import { useImgsStore } from '../export/imgs'
+import { storeToRefs } from 'pinia'
+
 
 import 'swiper/css'
 
 const swipers = ref(null)
 const toImg = ref(null)
-const imgs = ref([])
+const imgs = storeToRefs(useImgsStore()).raw
 const creates = ref([])
 const preView = ref(false)
 const log = ref()
 const logSrc = ref()
 const dialogs = ref({
   dialog: false,
-  only: localStorage.getItem('only') || false,
+  only: localStorage.getItem('only') || '',
   disabled: true,
   password: false,
   index: '0',
@@ -61,6 +62,7 @@ const dialogs = ref({
     dialogs.value.loading = false
   },
   delete: (index) => {
+    URL.revokeObjectURL(imgs.value[index].src)
     imgs.value.splice(index,1)
   },
   close: () => {
@@ -133,104 +135,10 @@ const ImgChange = async (uploadFileRaw) => {
     lock: true,
     text: '图片加载中',
   })
-
-  console.log(uploadFileRaw)
-
-  // if(uploadFileRaw.type !== 'image/png' && uploadFileRaw.type !== 'image/jpeg' && uploadFileRaw.type !== 'image/heic'){
-  //   load.close()
-  //   ElMessage({
-  //     type: 'info',
-  //     message: '图像格式不支持',
-  //   })
-  //   return false
-  // }
   
-  
-  let blob = URL.createObjectURL(uploadFileRaw)
-  const heic = await heic2any({
-    blob: uploadFileRaw,
-    toType: "image/jpeg",
-    quality: 1,
-  })
-  .then(async (resultBlob) => {
-    return URL.createObjectURL(resultBlob)
-  })
-  .catch(function (x) {
-    return false
-  })
+  let outArr = await img(uploadFileRaw)
 
-  
-  // logSrc.value = heic ? heic : blob
-
-  let output = await exifr.parse(blob)
-
-  if(!output){
-    load.close()
-    ElMessage({
-      type: 'info',
-      message: '图像不规范',
-    })
-    return false
-  }
-  
-  console.log(output,'178')
-  let outArr = await new Promise((resolve, reject) => {
-    let createHW = new Image()
-    let markIndex = output.Make && marks.value.findIndex(item => output.Make.toLowerCase().search(item.val) >= 0 ? true : false)
-    // console.log(markIndex)
-    let mark = markIndex >= 0 ? markIndex : 0
-    // log.value = output
-    createHW.onload = () => {
-      let obj = {
-        // ...output
-      }
-      Object.defineProperties(obj, {
-        'name': {
-          value: uploadFileRaw.name.split('.')[0],
-        },
-        'src': {
-          value: heic || blob,
-        },
-        'mark': {
-          value: mark,
-          writable: true,
-        },
-        'height': {
-          value: createHW.height,
-        },
-        'width': {
-          value: createHW.width,
-        },
-        'Model': {
-          value: output.Model || 'Immers',
-          enumerable: true,
-        },
-        'date': {
-          value: output.CreateDate && format(output.CreateDate),
-          enumerable: true,
-        },
-        'focal': {
-          value: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${(output?.FocalLengthIn35mmFormat && output?.FocalLengthIn35mmFormat + 'mm') || (output?.FocalLength && output?.FocalLength + 'mm') || ''} ${ (output?.FNumber && 'f/' + output?.FNumber ) || '' } ${ (output.ExposureTime && output.ExposureTime >= 1 ? `${output.ExposureTime}"` : `1/${parseInt(1 / output.ExposureTime)}`) || '' } ${ (output?.ISO && 'ISO' + output?.ISO) || '' }` : 'ImmersMark',
-          enumerable: true,
-        },
-        'itude': {
-          value: (output.GPSLatitudeRef && `${output.GPSLatitude[0]}° ${output.GPSLatitude[1]}' ${Math.round(output.GPSLatitude[2])}"${output.GPSLatitudeRef} ${output.GPSLongitude[0]}° ${output.GPSLongitude[1]}' ${Math.round(output.GPSLongitude[2])}"${output.GPSLongitudeRef}`),
-          enumerable: output.GPSLatitudeRef ? true : false,
-        },
-        'lens': {
-          value: output.LensModel,
-          enumerable: true,
-        }
-      })
-      console.log(obj)
-      resolve(obj)
-    }
-    createHW.src = heic || blob
-
-  })
-
-  
-  imgs.value.unshift(outArr)
+  outArr && imgs.value.unshift(outArr)
 
   load.close()
 
@@ -366,15 +274,11 @@ const IconChange = async (uploadFileRaw) => {
             <el-image :src="img.src" />
           </template>
         </el-popconfirm>
-        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',justifyContent: 'space-between',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
+        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers?.$el?.clientWidth / img.width})`,display: 'flex',justifyContent: 'space-between',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
           <div style="display: flex;justify-content: space-between;flex-flow: column wrap;">
             <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}</p>
             <p style="font-size: .69em;color: #818185;">{{ ((dialogs.json.mainSubTitle != '' && img[dialogs.json.mainSubTitle]) || typeof(dialogs.json.mainSubTitle) == 'number') ? typeof(dialogs.json.subMainTitle) == 'number' ? dialogs.customs[dialogs.json.subMainTitle] : img[dialogs.json.subMainTitle] : '' }}</p>
           </div>
-                                                                            <!-- //mainTitle 左上角
-                                                                            //subTitle 右上角
-                                                                            //subMainTitle 左下角
-                                                                            //mainSubTitle 右下角 -->
           <div style="display: flex;flex-flow: column wrap;justify-content: space-between;position: relative;">
             <el-image :src="marks[img.mark]?.custom ? marks[img.mark].val : `//web.immers.icu/assets/${marks[img.mark].val}.svg`" :style="{position: 'absolute',top: `${img[dialogs.json.subMainTitle] || img[dialogs.json.mainSubTitle] ? img.width > img.height ? `${img.width * 0.0103}px` : `${img.width * 0.014}px` : `${img.width * 0.0026}px`}`,bottom: `${img[dialogs.json.subMainTitle] || img[dialogs.json.mainSubTitle] ? img.width > img.height ? `${img.width * 0.0028}px` : `${img.width * 0.0045}px` : `${img.width * 0.0026}px`}`,left: `-${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,transform: 'translateX(-100%)',paddingRight: `${img.width > img.height ? img.width * 0.01 + 'px' : img.width * 0.018 + 'px'}`,borderRight: `solid ${img.width * 0.0013}px #ccc`,aspectRatio: marks[img.mark].ratio}" ></el-image>
             <p :style="{fontWeight: 'bold',fontSize: img.width > img.height ? '.84em' : '.78em',lineHeight: img.width > img.height ? '2.15em' : '2em'}">{{ typeof(dialogs.json.subTitle) == 'number' ? dialogs.customs[dialogs.json.subTitle] : img[dialogs.json.subTitle] }}</p>

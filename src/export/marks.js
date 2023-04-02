@@ -1,5 +1,10 @@
 const marks = [
     {
+        name: '沐享',
+        val: 'logo',
+        ratio: '1 / 1',
+    },
+    {
         name: '徕卡',
         val: 'leica',
         ratio: '1 / 1',

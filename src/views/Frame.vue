@@ -1,27 +1,28 @@
 <script setup>
 import { ref } from 'vue'
-import { InfoFilled } from '@element-plus/icons-vue'
 import { ElPopconfirm } from 'element-plus'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import exifr from 'exifr'
-import heic2any from 'heic2any'
 import domtoimage from 'dom-to-image'
 import axios from 'axios'
 import Menu from '../components/menu.vue'
 import Tips from '../components/tips.vue'
+import glMarks from '../export/marks'
+import { img } from '../export/img'
+import { useImgsStore } from '../export/imgs'
+import { storeToRefs } from 'pinia'
 
 import 'swiper/css'
 
 const swipers = ref(null)
 const toImg = ref(null)
-const imgs = ref([])
 const creates = ref([])
 const preView = ref(false)
+const imgs = storeToRefs(useImgsStore()).raw
 const log = ref()
 const logSrc = ref()
 const dialogs = ref({
   dialog: false,
-  only: localStorage.getItem('only') || false,
+  only: localStorage.getItem('only') || '',
   disabled: true,
   password: false,
   index: '0',
@@ -56,6 +57,7 @@ const dialogs = ref({
     dialogs.value.loading = false
   },
   delete: (index) => {
+    URL.revokeObjectURL(imgs.value[index].src)
     imgs.value.splice(index,1)
   },
   close: () => {
@@ -119,6 +121,8 @@ const dialogs = ref({
     })
   }
 })
+const lsMarks = JSON.parse(localStorage.getItem('marks')) || []
+const marks = ref([...lsMarks,...glMarks])
 
 
 const ImgChange = async (uploadFileRaw) => {
@@ -126,93 +130,10 @@ const ImgChange = async (uploadFileRaw) => {
     lock: true,
     text: '图片加载中',
   })
-
-  console.log(uploadFileRaw)
-
-  // if(uploadFileRaw.type !== 'image/png' && uploadFileRaw.type !== 'image/jpeg' && uploadFileRaw.type !== 'image/heic'){
-  //   load.close()
-  //   ElMessage({
-  //     type: 'info',
-  //     message: '图像格式不支持',
-  //   })
-  //   return false
-  // }
   
-  
-  let blob = URL.createObjectURL(uploadFileRaw)
-  const heic = await heic2any({
-    blob: uploadFileRaw,
-    toType: "image/jpeg",
-    quality: 1,
-  })
-  .then(async (resultBlob) => {
-    return URL.createObjectURL(resultBlob)
-  })
-  .catch(function (x) {
-    return false
-  })
-  let output = await exifr.parse(blob)
+  let outArr = await img(uploadFileRaw)
 
-  if(!output){
-    load.close()
-    ElMessage({
-      type: 'info',
-      message: '图像不规范',
-    })
-    return false
-  }
-  
-  console.log(output,'178')
-  let outArr = await new Promise((resolve, reject) => {
-    let createHW = new Image()
-    // log.value = output
-    createHW.onload = () => {
-      let obj = {
-        // ...output
-      }
-      Object.defineProperties(obj, {
-        'name': {
-          value: uploadFileRaw.name.split('.')[0],
-        },
-        'src': {
-          value: heic || blob,
-        },
-        'height': {
-          value: createHW.height,
-        },
-        'width': {
-          value: createHW.width,
-        },
-        'Model': {
-          value: output.Model || 'Immers',
-          enumerable: true,
-        },
-        'date': {
-          value: output.CreateDate && format(output.CreateDate),
-          enumerable: true,
-        },
-        'focal': {
-          value: output?.FocalLengthIn35mmFormat || output?.FocalLength ? `${(output?.FocalLengthIn35mmFormat && output?.FocalLengthIn35mmFormat + 'mm') || (output?.FocalLength && output?.FocalLength + 'mm') || ''} ${ (output?.FNumber && 'f/' + output?.FNumber ) || '' } ${ (output.ExposureTime && output.ExposureTime >= 1 ? `${output.ExposureTime}"` : `1/${parseInt(1 / output.ExposureTime)}`) || '' } ${ (output?.ISO && 'ISO' + output?.ISO) || '' }` : 'ImmersMark',
-          enumerable: true,
-        },
-        'itude': {
-          value: (output.GPSLatitudeRef && `${output.GPSLatitude[0]}° ${output.GPSLatitude[1]}' ${Math.round(output.GPSLatitude[2])}"${output.GPSLatitudeRef} ${output.GPSLongitude[0]}° ${output.GPSLongitude[1]}' ${Math.round(output.GPSLongitude[2])}"${output.GPSLongitudeRef}`),
-          enumerable: output.GPSLatitudeRef ? true : false,
-        },
-        'lens': {
-          value: output.LensModel,
-          enumerable: true,
-        }
-      })
-      console.log(obj)
-      resolve(obj)
-    }
-    createHW.src = heic || blob
-
-  })
-
-  
-  imgs.value.unshift(outArr)
+  outArr && imgs.value.unshift(outArr)
 
   load.close()
 
@@ -271,7 +192,7 @@ const Create = async () =>{
           message: '生成失败',
           grouping: true,
         })
-        return
+        continue
       }
       axios({
         method: 'post',
@@ -333,7 +254,7 @@ const PreViewClose = () => {
             <el-image :src="img.src" />
           </template>
         </el-popconfirm>
-        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers.$el.clientWidth / img.width})`,display: 'flex',justifyContent: 'flex-end',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
+        <div @click="dialogs.show(index)" class="mark" :style="{boxSizing: 'border-box',width: img.width + 'px',transformOrigin: 'top left',transform: `scale(${swipers?.$el?.clientWidth / img.width})`,display: 'flex',justifyContent: 'flex-end',padding: `${img.width > img.height ? img.width * 0.015 + 'px ' + img.width * 0.038 + 'px ' + img.width * 0.022 + 'px ' + img.width * 0.0385 + 'px' : img.width * 0.032 + 'px ' + img.width * 0.048 + 'px ' + img.width * 0.042 + 'px ' + img.width * 0.05 + 'px'}`,background: '#ffffff',fontSize: img.width > img.height ? img.width * 0.018 + 'px'  : img.width * 0.033 + 'px'}">
           <p :style="{fontWeight: 'bold',fontSize:  img.width > img.height ? '.86em' : '.82em',lineHeight: img.width > img.height ? '2.2em' : '1.9em'}">{{ typeof(dialogs.json.mainTitle) == 'number' ? dialogs.customs[dialogs.json.mainTitle] : img[dialogs.json.mainTitle] }}</p>
         </div>
       </swiper-slide>

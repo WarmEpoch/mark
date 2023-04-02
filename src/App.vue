@@ -91,4 +91,8 @@
   .swiper-wrapper{
     font-size: 0;
   }
+
+  ::-webkit-scrollbar{
+    display: none;
+  }
 </style>
