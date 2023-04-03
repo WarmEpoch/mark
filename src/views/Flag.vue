@@ -167,13 +167,13 @@ const Create = async () =>{
   for(let index in lists){
     let div = lists[index].querySelector('.mark').cloneNode(true)
     div.style.transform = 'unset'
-    toImg.value.append(div)
+    // toImg.value.append(div)
 
     let canvas = document.createElement('canvas')
     let jamb = imgs.value[index].width * 0.05
     canvas.width = imgs.value[index].width + jamb + jamb
     canvas.height = jamb + imgs.value[index].height + div.clientHeight
-    toImg.value.append(canvas)
+    // toImg.value.append(canvas)
     let cancon = canvas.getContext('2d')
     cancon.rect(0,0,canvas.width,canvas.height)
     cancon.fillStyle = "#fff"

@@ -9,13 +9,12 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRoute,useRouter } from 'vue-router'
 const router = useRouter()
-
-const props = defineProps(['id'])
-const menuId = props.id
+const route = useRoute()
+const menuId = route.name
 const handleClick = (tab) => {
-    tab.props.name === 'Mi' ? router.replace({ path: '/' }) : router.replace({ path: tab.props.name })
+    router.replace({ path: tab.props.name })
 }
 </script>
 
